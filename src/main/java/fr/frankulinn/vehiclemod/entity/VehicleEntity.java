@@ -1,5 +1,6 @@
 package fr.frankulinn.vehiclemod.entity;
 
+import fr.frankulinn.vehiclemod.entity.parts.PartSlot;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.world.InteractionHand;
@@ -16,12 +17,29 @@ import software.bernie.geckolib.animation.AnimatableManager;
 import software.bernie.geckolib.util.GeckoLibUtil;
 
 import javax.annotation.Nullable;
+import java.util.HashMap;
+import java.util.Map;
 
 public class VehicleEntity extends Entity implements GeoEntity {
+
+    private final Map<String, PartSlot> partSlots = new HashMap<>();
 
     // Constructeur obligatoire pour que Minecraft puisse spawner l'entité
     public VehicleEntity(EntityType<?> entityType, Level level) {
         super(entityType, level);
+        initSlots();
+    }
+
+    private void initSlots() {
+        this.partSlots.put("engine_bay", new PartSlot("engine_bay"));
+        this.partSlots.put("wheel_front_left", new PartSlot("wheel_front_left"));
+        this.partSlots.put("wheel_front_right", new PartSlot("wheel_front_right"));
+        this.partSlots.put("wheel_back_left", new PartSlot("wheel_back_left"));
+        this.partSlots.put("wheel_back_right", new PartSlot("wheel_back_right"));
+    }
+
+    public PartSlot getSlot(String slotId) {
+        return this.partSlots.get(slotId);
     }
 
     // C'est ici qu'on déclarera plus tard nos variables synchronisées (ex: la couleur, isLifted, etc.)
@@ -45,29 +63,30 @@ public class VehicleEntity extends Entity implements GeoEntity {
     protected void updateAcceleration() {
         if (this.isVehicle() && this.getControllingPassenger() instanceof Player driver) {
 
-            // On donne l'autorité totale au CLIENT (celui qui a le clavier)
-            if (this.level().isClientSide()) {
-                float forwardImpulse = driver.zza;
-                float strafeImpulse = -driver.xxa;
+            // Le Serveur ET le Client connaissent "driver.zza" grâce au réseau natif de Minecraft.
+            // On calcule donc la poussée des DEUX côtés en même temps pour une synchro parfaite.
+            float forwardImpulse = driver.zza;
+            float strafeImpulse = -driver.xxa;
 
-                if (forwardImpulse != 0) {
-                    this.setYRot(this.getYRot() + strafeImpulse * 4.0f);
-                }
-
-                double speedMultiplier = 0.6;
-                Vec3 forwardVec = Vec3.directionFromRotation(0, this.getYRot());
-
-                double motionX = forwardVec.x * forwardImpulse * speedMultiplier;
-                double motionZ = forwardVec.z * forwardImpulse * speedMultiplier;
-                double motionY = this.isNoGravity() ? 0.0 : -0.08;
-
-                this.setDeltaMovement(motionX, motionY, motionZ);
+            if (forwardImpulse != 0) {
+                // Mise à jour de la rotation
+                this.setYRot(this.getYRot() + strafeImpulse * 4.0f);
             }
-            // Si on est sur le Serveur, on ne fait RIEN.
-            // On laisse le jeu synchroniser la position automatiquement grâce au paquet de mouvement natif de Minecraft.
+
+            double speedMultiplier = 0.6;
+            Vec3 forwardVec = Vec3.directionFromRotation(0, this.getYRot());
+
+            double motionX = forwardVec.x * forwardImpulse * speedMultiplier;
+            double motionZ = forwardVec.z * forwardImpulse * speedMultiplier;
+            double motionY = this.isNoGravity() ? 0.0 : -0.08;
+
+            this.setDeltaMovement(motionX, motionY, motionZ);
+
+            // Cette ligne s'assure que le corps de l'entité suit bien la rotation de la tête
+            this.setYBodyRot(this.getYRot());
 
         } else {
-            // S'il n'y a pas de conducteur, Client ET Serveur appliquent la friction
+            // Sans conducteur : friction
             Vec3 current = this.getDeltaMovement();
             double motionY = this.isNoGravity() ? 0.0 : -0.08;
             this.setDeltaMovement(current.x * 0.5, motionY, current.z * 0.5);
