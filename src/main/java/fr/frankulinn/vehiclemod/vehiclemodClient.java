@@ -1,5 +1,6 @@
 package fr.frankulinn.vehiclemod;
 
+import fr.frankulinn.vehiclemod.client.renderer.VehicleChassisRenderer;
 import fr.frankulinn.vehiclemod.registers.ModEntities;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.entity.NoopRenderer;
@@ -29,7 +30,7 @@ public class vehiclemodClient {
     @SubscribeEvent
     public static void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {
         // On assigne le "Renderer invisible" à notre châssis
-        event.registerEntityRenderer(ModEntities.VEHICLE_CHASSIS.get(), NoopRenderer::new);
+        event.registerEntityRenderer(ModEntities.VEHICLE_CHASSIS.get(), VehicleChassisRenderer::new);
     }
 
     @SubscribeEvent

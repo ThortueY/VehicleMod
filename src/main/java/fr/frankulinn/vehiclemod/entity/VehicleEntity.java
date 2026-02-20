@@ -10,10 +10,14 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
+import software.bernie.geckolib.animatable.GeoEntity;
+import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
+import software.bernie.geckolib.animation.AnimatableManager;
+import software.bernie.geckolib.util.GeckoLibUtil;
 
 import javax.annotation.Nullable;
 
-public class VehicleEntity extends Entity {
+public class VehicleEntity extends Entity implements GeoEntity {
 
     // Constructeur obligatoire pour que Minecraft puisse spawner l'entité
     public VehicleEntity(EntityType<?> entityType, Level level) {
@@ -39,39 +43,31 @@ public class VehicleEntity extends Entity {
     }
 
     protected void updateAcceleration() {
-        // Si le véhicule a un conducteur (le joueur)
         if (this.isVehicle() && this.getControllingPassenger() instanceof Player driver) {
 
-            // Dans Minecraft, driver.zza = touche Avancer/Reculer (Z/S)
-            // driver.xxa = touche Gauche/Droite (Q/D)
-            float forwardImpulse = driver.zza;
-            float strafeImpulse = -driver.xxa; // Inversé pour que la rotation soit logique
+            // On donne l'autorité totale au CLIENT (celui qui a le clavier)
+            if (this.level().isClientSide()) {
+                float forwardImpulse = driver.zza;
+                float strafeImpulse = -driver.xxa;
 
-            // Rotation : On tourne seulement si on avance ou recule
-            if (forwardImpulse != 0) {
-                // Modifie la rotation horizontale de la hitbox
-                this.setYRot(this.getYRot() + strafeImpulse * 4.0f);
+                if (forwardImpulse != 0) {
+                    this.setYRot(this.getYRot() + strafeImpulse * 4.0f);
+                }
+
+                double speedMultiplier = 0.6;
+                Vec3 forwardVec = Vec3.directionFromRotation(0, this.getYRot());
+
+                double motionX = forwardVec.x * forwardImpulse * speedMultiplier;
+                double motionZ = forwardVec.z * forwardImpulse * speedMultiplier;
+                double motionY = this.isNoGravity() ? 0.0 : -0.08;
+
+                this.setDeltaMovement(motionX, motionY, motionZ);
             }
-
-            // Calcul de la poussée (temporaire, on lira le moteur ici plus tard !)
-            double speedMultiplier = 0.6; // Vitesse de test
-
-            // On calcule le vecteur de direction en fonction de là où regarde la hitbox
-            Vec3 forwardVec = Vec3.directionFromRotation(0, this.getYRot());
-
-            // Calcul final de l'accélération sur X et Z
-            double motionX = forwardVec.x * forwardImpulse * speedMultiplier;
-            double motionZ = forwardVec.z * forwardImpulse * speedMultiplier;
-
-            // Gravité de base
-            double motionY = this.isNoGravity() ? 0.0 : -0.08;
-
-            // On assigne l'effort calculé à la vélocité de l'entité
-            this.setDeltaMovement(motionX, motionY, motionZ);
+            // Si on est sur le Serveur, on ne fait RIEN.
+            // On laisse le jeu synchroniser la position automatiquement grâce au paquet de mouvement natif de Minecraft.
 
         } else {
-            // S'il n'y a pas de conducteur, on applique une friction très forte (freinage)
-            // et la gravité
+            // S'il n'y a pas de conducteur, Client ET Serveur appliquent la friction
             Vec3 current = this.getDeltaMovement();
             double motionY = this.isNoGravity() ? 0.0 : -0.08;
             this.setDeltaMovement(current.x * 0.5, motionY, current.z * 0.5);
@@ -128,5 +124,21 @@ public class VehicleEntity extends Entity {
         // Le jeu a besoin de savoir qui conduit. C'est le premier passager.
         Entity entity = this.getFirstPassenger();
         return entity instanceof LivingEntity living ? living : null;
+    }
+
+    // Le cache obligatoire pour GeckoLib
+    private final AnimatableInstanceCache cache = GeckoLibUtil.createInstanceCache(this);
+
+    // ... (Ton constructeur et tes méthodes tick() restent identiques) ...
+
+    @Override
+    public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {
+        // C'est ici qu'on mettra les animations (roues qui tournent, volant) plus tard.
+        // Pour l'instant, on laisse vide, on veut juste un modèle statique.
+    }
+
+    @Override
+    public AnimatableInstanceCache getAnimatableInstanceCache() {
+        return this.cache;
     }
 }
