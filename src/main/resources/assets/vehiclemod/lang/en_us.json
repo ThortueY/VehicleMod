@@ -1,0 +1,13 @@
+{
+  "itemGroup.vehiclemod": "Example Mod Tab",
+  "block.vehiclemod.example_block": "Example Block",
+  "item.vehiclemod.example_item": "Example Item",
+
+  "vehiclemod.configuration.title": "vehiclemod Configs",
+  "vehiclemod.configuration.section.vehiclemod.common.toml": "vehiclemod Configs",
+  "vehiclemod.configuration.section.vehiclemod.common.toml.title": "vehiclemod Configs",
+  "vehiclemod.configuration.items": "Item List",
+  "vehiclemod.configuration.logDirtBlock": "Log Dirt Block",
+  "vehiclemod.configuration.magicNumberIntroduction": "Magic Number Text",
+  "vehiclemod.configuration.magicNumber": "Magic Number"
+}
