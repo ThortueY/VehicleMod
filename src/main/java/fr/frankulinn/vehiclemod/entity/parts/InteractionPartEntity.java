@@ -93,7 +93,7 @@ public class InteractionPartEntity extends Entity {
             // LOGIQUE ROUES
             else if (this.slotId.startsWith("wheel_")) {
                 if (stackInHand.getItem() instanceof WheelItem) {
-                    fr.frankulinn.vehiclemod.entity.parts.WheelPart newWheel = new fr.frankulinn.vehiclemod.entity.parts.WheelPart(1.0f, 15.0f);
+                    WheelPart newWheel = new WheelPart(1.0f, 15.0f, "kart_wheel");
 
                     if (slot.installPart(newWheel)) {
                         if (!player.isCreative()) stackInHand.shrink(1);

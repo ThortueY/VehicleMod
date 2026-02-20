@@ -31,9 +31,14 @@ import java.util.Map;
 public class VehicleEntity extends Entity implements GeoEntity {
 
     // Ces variables sont synchronisées automatiquement du Serveur vers le Client
-    private static final EntityDataAccessor<Boolean> HAS_ENGINE = SynchedEntityData.defineId(VehicleEntity.class, EntityDataSerializers.BOOLEAN);
+    public static final EntityDataAccessor<Boolean> HAS_ENGINE = SynchedEntityData.defineId(VehicleEntity.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Boolean> ENGINE_SECURED = SynchedEntityData.defineId(VehicleEntity.class, EntityDataSerializers.BOOLEAN);
-    private static final EntityDataAccessor<Integer> SECURED_WHEELS = SynchedEntityData.defineId(VehicleEntity.class, EntityDataSerializers.INT);
+    // Avec HAS_ENGINE, WHEEL_FL, etc...
+    public static final EntityDataAccessor<Integer> SECURED_WHEELS = SynchedEntityData.defineId(VehicleEntity.class, EntityDataSerializers.INT);
+    public static final EntityDataAccessor<String> WHEEL_FL = SynchedEntityData.defineId(VehicleEntity.class, EntityDataSerializers.STRING);
+    public static final EntityDataAccessor<String> WHEEL_FR = SynchedEntityData.defineId(VehicleEntity.class, EntityDataSerializers.STRING);
+    public static final EntityDataAccessor<String> WHEEL_BL = SynchedEntityData.defineId(VehicleEntity.class, EntityDataSerializers.STRING);
+    public static final EntityDataAccessor<String> WHEEL_BR = SynchedEntityData.defineId(VehicleEntity.class, EntityDataSerializers.STRING);
 
     private final Map<String, PartSlot> partSlots = new HashMap<>();
     private final List<InteractionPartEntity> hitboxes = new ArrayList<>();
@@ -92,23 +97,36 @@ public class VehicleEntity extends Entity implements GeoEntity {
         // Vide pour l'instant
         builder.define(HAS_ENGINE, false);
         builder.define(ENGINE_SECURED, false);
-        builder.define(SECURED_WHEELS, 0); // 0 roue vissée par défaut
+        builder.define(SECURED_WHEELS, 0); // 0 roue vissée au départ
+        builder.define(WHEEL_FL, "none");
+        builder.define(WHEEL_FR, "none");
+        builder.define(WHEEL_BL, "none");
+        builder.define(WHEEL_BR, "none");
     }
 
     public void updatePartsSync() {
-        // 1. Synchro du Moteur
-        PartSlot engineSlot = this.getSlot("engine_bay");
+        // 1. Synchro du Moteur (Présence ET Fixation)
+        fr.frankulinn.vehiclemod.entity.parts.PartSlot engineSlot = this.getSlot("engine_bay");
         this.entityData.set(HAS_ENGINE, engineSlot != null && engineSlot.getPart() != null);
+
+        // 🔥 C'est la ligne qui manquait ! On vérifie si le moteur est bien fixé avec la clé
         this.entityData.set(ENGINE_SECURED, engineSlot != null && engineSlot.isSecured());
 
-        // 2. Synchro des Roues (On compte combien sont vissées)
-        int wheelCount = 0;
-        if (isWheelSecured("wheel_front_left")) wheelCount++;
-        if (isWheelSecured("wheel_front_right")) wheelCount++;
-        if (isWheelSecured("wheel_back_left")) wheelCount++;
-        if (isWheelSecured("wheel_back_right")) wheelCount++;
+        // 2. Synchro des Roues (Pour l'affichage visuel de GeckoLib)
+        int count = 0;
+        if (this.getSlot("wheel_front_left") != null && this.getSlot("wheel_front_left").isSecured()) count++;
+        if (this.getSlot("wheel_front_right") != null && this.getSlot("wheel_front_right").isSecured()) count++;
+        if (this.getSlot("wheel_back_left") != null && this.getSlot("wheel_back_left").isSecured()) count++;
+        if (this.getSlot("wheel_back_right") != null && this.getSlot("wheel_back_right").isSecured()) count++;
 
-        this.entityData.set(SECURED_WHEELS, wheelCount);
+        this.entityData.set(SECURED_WHEELS, count);
+    }
+    private String getWheelTypeAt(String slotId) {
+        PartSlot slot = this.getSlot(slotId);
+        if (slot != null && slot.getPart() instanceof fr.frankulinn.vehiclemod.entity.parts.WheelPart wheel) {
+            return wheel.getWheelType();
+        }
+        return "none";
     }
 
     private boolean isWheelSecured(String slotId) {
@@ -176,23 +194,17 @@ public class VehicleEntity extends Entity implements GeoEntity {
             this.setYRot(this.getYRot() + strafeImpulse * 4.0f);
         }
 
-
         double speedMultiplier = 0.0;
 
         if (this.entityData.get(HAS_ENGINE) && this.entityData.get(ENGINE_SECURED)) {
-            speedMultiplier = 150.0 / 250.0;
+            speedMultiplier = 150.0 / 250.0; // 0.6
         }
 
-        // --- NOUVEAU : GESTION DES ROUES ---
-        int wheels = this.entityData.get(SECURED_WHEELS);
-
-        // On multiplie la vitesse par le ratio de roues (ex: 2 roues / 4 = 50% de la vitesse)
-        // S'il y a 0 roue, 0 / 4 = 0, la voiture n'avance pas !
-        speedMultiplier *= (wheels / 4.0);
+        int securedWheels = this.entityData.get(SECURED_WHEELS);
+        speedMultiplier *= (securedWheels / 4.0);
 
         Vec3 forwardVec = Vec3.directionFromRotation(0, this.getYRot());
 
-        // L'accélération dépendra maintenant du vrai moteur
         double motionX = forwardVec.x * forwardImpulse * speedMultiplier;
         double motionZ = forwardVec.z * forwardImpulse * speedMultiplier;
         double motionY = this.isNoGravity() ? 0.0 : -0.08;
@@ -273,4 +285,6 @@ public class VehicleEntity extends Entity implements GeoEntity {
     public AnimatableInstanceCache getAnimatableInstanceCache() {
         return this.cache;
     }
+
+
 }

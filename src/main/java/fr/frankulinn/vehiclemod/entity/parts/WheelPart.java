@@ -1,14 +1,16 @@
 package fr.frankulinn.vehiclemod.entity.parts;
 
 public class WheelPart extends VehiclePart {
-    private final float grip; // L'adhérence (utile plus tard pour la glace/boue)
+    private final float grip;
+    private final String wheelType; // L'identifiant du modèle (ex: "offroad", "kart")
 
-    public WheelPart(float grip, float weight) {
+    public WheelPart(float grip, float weight, String wheelType) {
         super(weight);
         this.grip = grip;
+        this.wheelType = wheelType;
     }
 
-    public float getGrip() {
-        return this.grip;
+    public String getWheelType() {
+        return this.wheelType;
     }
 }
