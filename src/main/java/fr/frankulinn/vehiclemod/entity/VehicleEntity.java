@@ -2,9 +2,15 @@ package fr.frankulinn.vehiclemod.entity;
 
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
+
+import javax.annotation.Nullable;
 
 public class VehicleEntity extends Entity {
 
@@ -53,5 +59,33 @@ public class VehicleEntity extends Entity {
     @Override
     public boolean isPickable() {
         return true; // Permet aux joueurs de cliquer sur la hitbox
+    }
+
+    @Override
+    public InteractionResult interact(Player player, InteractionHand hand) {
+        // Si on est sur le serveur et que le joueur n'est pas déjà dans un véhicule
+        if (!this.level().isClientSide() && player.getVehicle() == null) {
+            // Le joueur monte dans la hitbox
+            player.startRiding(this);
+            return InteractionResult.SUCCESS;
+        }
+        return super.interact(player, hand);
+    }
+
+    @Override
+    protected void positionRider(Entity passenger, Entity.MoveFunction callback) {
+        super.positionRider(passenger, callback);
+        if (this.hasPassenger(passenger)) {
+            // On place le joueur au centre de la hitbox, surélevé de 0.5 bloc pour qu'il ne rentre pas dans le sol
+            callback.accept(passenger, this.getX(), this.getY() + 0.5, this.getZ());
+        }
+    }
+
+    @Nullable
+    @Override
+    public LivingEntity getControllingPassenger() {
+        // Le jeu a besoin de savoir qui conduit. C'est le premier passager.
+        Entity entity = this.getFirstPassenger();
+        return entity instanceof LivingEntity living ? living : null;
     }
 }
