@@ -13,4 +13,8 @@ public class WheelPart extends VehiclePart {
     public String getWheelType() {
         return this.wheelType;
     }
+
+    public float getGrip() {
+        return grip;
+    }
 }

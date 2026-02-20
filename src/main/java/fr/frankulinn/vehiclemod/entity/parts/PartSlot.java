@@ -1,5 +1,7 @@
 package fr.frankulinn.vehiclemod.entity.parts;
 
+import net.minecraft.nbt.CompoundTag;
+
 public class PartSlot {
 
     private final String slotId; // ex: "engine_bay", "wheel_front_left"
@@ -61,5 +63,64 @@ public class PartSlot {
 
     public String getSlotId() {
         return this.slotId;
+    }
+
+    public CompoundTag save() {
+        CompoundTag tag = new CompoundTag();
+        tag.putString("State", this.state.name()); // Sauvegarde EMPTY, PLACED ou SECURED
+
+        if (this.installedPart != null) {
+            CompoundTag partTag = new CompoundTag();
+
+            // On sauvegarde les spécificités selon le type de pièce
+            if (this.installedPart instanceof fr.frankulinn.vehiclemod.entity.parts.EnginePart engine) {
+                partTag.putString("Type", "Engine");
+                partTag.putFloat("Horsepower", engine.getHorsepower());
+                partTag.putFloat("Weight", engine.getWeight());
+            }
+            else if (this.installedPart instanceof fr.frankulinn.vehiclemod.entity.parts.WheelPart wheel) {
+                partTag.putString("Type", "Wheel");
+                partTag.putFloat("Grip", wheel.getGrip());
+                partTag.putFloat("Weight", wheel.getWeight());
+                partTag.putString("WheelType", wheel.getWheelType()); // "offroad", "kart", etc.
+            }
+
+            // Stats communes
+            partTag.putFloat("Condition", this.installedPart.getCondition());
+            tag.put("Part", partTag);
+        }
+        return tag;
+    }
+
+    public void load(CompoundTag tag) {
+        if (tag.contains("State")) {
+            // Attention à bien mettre le bon chemin vers ton enum PartState !
+            this.state = fr.frankulinn.vehiclemod.entity.parts.PartState.valueOf(tag.getString("State"));
+        }
+
+        if (tag.contains("Part")) {
+            CompoundTag partTag = tag.getCompound("Part");
+            String type = partTag.getString("Type");
+            float weight = partTag.getFloat("Weight");
+            float condition = partTag.getFloat("Condition");
+
+            // On recrée l'objet pièce selon son type sauvegardé
+            if (type.equals("Engine")) {
+                float hp = partTag.getFloat("Horsepower");
+                this.installedPart = new fr.frankulinn.vehiclemod.entity.parts.EnginePart(hp, weight);
+            }
+            else if (type.equals("Wheel")) {
+                float grip = partTag.getFloat("Grip");
+                String wheelType = partTag.getString("WheelType");
+                this.installedPart = new fr.frankulinn.vehiclemod.entity.parts.WheelPart(grip, weight, wheelType);
+            }
+
+            if (this.installedPart != null) {
+                this.installedPart.setCondition(condition);
+            }
+        } else {
+            this.installedPart = null;
+            this.state = fr.frankulinn.vehiclemod.entity.parts.PartState.EMPTY;
+        }
     }
 }

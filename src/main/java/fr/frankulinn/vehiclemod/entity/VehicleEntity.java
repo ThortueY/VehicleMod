@@ -218,14 +218,36 @@ public class VehicleEntity extends Entity implements GeoEntity {
 
     // Sauvegarde des données quand on quitte le monde
     @Override
-    protected void readAdditionalSaveData(CompoundTag compound) {
-        // On lira l'essence, les pièces, etc. ici plus tard
+    protected void addAdditionalSaveData(CompoundTag compound) {
+        CompoundTag slotsTag = new CompoundTag();
+
+        // On sauvegarde chaque emplacement par son nom ("engine_bay", etc.)
+        for (java.util.Map.Entry<String, fr.frankulinn.vehiclemod.entity.parts.PartSlot> entry : this.partSlots.entrySet()) {
+            slotsTag.put(entry.getKey(), entry.getValue().save());
+        }
+
+        compound.put("PartSlots", slotsTag);
     }
 
     // Chargement des données quand on rejoint le monde
     @Override
-    protected void addAdditionalSaveData(CompoundTag compound) {
-        // On sauvegardera l'essence, les pièces, etc. ici plus tard
+    protected void readAdditionalSaveData(CompoundTag compound) {
+        if (compound.contains("PartSlots")) {
+            CompoundTag slotsTag = compound.getCompound("PartSlots");
+
+            for (String slotId : slotsTag.getAllKeys()) {
+                fr.frankulinn.vehiclemod.entity.parts.PartSlot slot = this.getSlot(slotId);
+                if (slot != null) {
+                    // On demande à l'emplacement de se recharger avec les données lues
+                    slot.load(slotsTag.getCompound(slotId));
+                }
+            }
+        }
+
+        // 🔥 CRUCIAL : Une fois que le serveur a rechargé les pièces depuis le fichier,
+        // on l'oblige à mettre à jour le réseau (SynchedEntityData) pour que le Client
+        // (ton écran) affiche les modèles 3D et calcule la bonne vitesse !
+        this.updatePartsSync();
     }
 
     // Empêche le véhicule de despawner comme un simple zombie
@@ -285,6 +307,7 @@ public class VehicleEntity extends Entity implements GeoEntity {
     public AnimatableInstanceCache getAnimatableInstanceCache() {
         return this.cache;
     }
+
 
 
 }
