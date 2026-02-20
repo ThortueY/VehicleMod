@@ -39,6 +39,14 @@ public class PartSlot {
         return part; // Retourne la pièce pour la redonner au joueur
     }
 
+    public boolean unsecurePart() {
+        if (this.state == fr.frankulinn.vehiclemod.entity.parts.PartState.SECURED) {
+            this.state = fr.frankulinn.vehiclemod.entity.parts.PartState.PLACED;
+            return true;
+        }
+        return false;
+    }
+
     public boolean isSecured() {
         return this.state == PartState.SECURED;
     }

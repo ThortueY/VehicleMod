@@ -1,6 +1,7 @@
 package fr.frankulinn.vehiclemod;
 
 import fr.frankulinn.vehiclemod.registers.ModEntities;
+import fr.frankulinn.vehiclemod.registers.ModItems;
 import org.slf4j.Logger;
 
 import com.mojang.logging.LogUtils;
@@ -37,6 +38,7 @@ public class Vehiclemod {
         // Do not add this line if there are no @SubscribeEvent-annotated functions in this class, like onServerStarting() below.
         NeoForge.EVENT_BUS.register(this);
         ModEntities.ENTITY_TYPES.register(modEventBus);
+        ModItems.ITEMS.register(modEventBus);
 
         // Register the item to a creative tab
         modEventBus.addListener(this::addCreative);
