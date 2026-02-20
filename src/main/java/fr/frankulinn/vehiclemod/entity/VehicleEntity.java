@@ -1,6 +1,8 @@
 package fr.frankulinn.vehiclemod.entity;
 
+import fr.frankulinn.vehiclemod.entity.parts.InteractionPartEntity;
 import fr.frankulinn.vehiclemod.entity.parts.PartSlot;
+import fr.frankulinn.vehiclemod.registers.ModEntities;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.world.InteractionHand;
@@ -17,12 +19,16 @@ import software.bernie.geckolib.animation.AnimatableManager;
 import software.bernie.geckolib.util.GeckoLibUtil;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class VehicleEntity extends Entity implements GeoEntity {
 
     private final Map<String, PartSlot> partSlots = new HashMap<>();
+    private final List<InteractionPartEntity> hitboxes = new ArrayList<>();
+    private boolean hitboxesSpawned = false;
 
     // Constructeur obligatoire pour que Minecraft puisse spawner l'entité
     public VehicleEntity(EntityType<?> entityType, Level level) {
@@ -42,60 +48,108 @@ public class VehicleEntity extends Entity implements GeoEntity {
         return this.partSlots.get(slotId);
     }
 
-    // C'est ici qu'on déclarera plus tard nos variables synchronisées (ex: la couleur, isLifted, etc.)
+    private void spawnHitboxes() {
+        // Paramètres : ID du slot, décalage (X, Y, Z), largeur, hauteur
+
+        // Exemple 1 : Le trou du moteur est à l'avant (Z = 1.0) et un peu en hauteur (Y
+        // = 0.5)
+        createHitbox("engine_bay", new Vec3(0, 0.5, 1.0), 0.8f, 0.8f);
+
+        // Exemple 2 : Roue avant gauche (X = 1.0, Z = 1.0)
+        createHitbox("wheel_front_left", new Vec3(1.0, 0.2, 1.0), 0.5f, 0.5f);
+
+        // (Tu pourras ajouter les autres roues ici plus tard)
+    }
+
+    private void createHitbox(String slotId, Vec3 offset, float width, float height) {
+        InteractionPartEntity hitbox = ModEntities.INTERACTION_PART.get().create(this.level());
+        if (hitbox != null) {
+            hitbox.init(this, slotId, offset, width, height);
+            hitbox.setPos(this.getX(), this.getY(), this.getZ());
+            this.level().addFreshEntity(hitbox);
+            this.hitboxes.add(hitbox);
+        }
+    }
+
+    // C'est ici qu'on déclarera plus tard nos variables synchronisées (ex: la
+    // couleur, isLifted, etc.)
     // En 1.21.1, on utilise le builder.
     @Override
     protected void defineSynchedData(SynchedEntityData.Builder builder) {
         // Vide pour l'instant
     }
 
+    // Empêche les autres entités (et ses propres composants) de pousser la voiture
+    @Override
+    public boolean isPushable() {
+        return false;
+    }
+
+    // Définit avec qui la voiture a le droit d'entrer en collision physique
+    @Override
+    public boolean canCollideWith(Entity entity) {
+        // On ignore totalement la collision si l'entité touchée est un de nos
+        // composants
+        if (entity instanceof fr.frankulinn.vehiclemod.entity.parts.InteractionPartEntity) {
+            return false;
+        }
+        return super.canCollideWith(entity);
+    }
+
+    // === FIX ROLLBACK: On ignore les corrections de position du tracker serveur
+    // ===
+    // Le tracker d'entité envoie des positions STALE au client via lerpTo().
+    // Comme on calcule la physique identiquement côté client ET serveur,
+    // le client a déjà la bonne position → on ignore ces corrections.
+    @Override
+    public void lerpTo(double x, double y, double z, float yRot, float xRot, int steps) {
+        // Ne PAS appeler super.lerpTo() — c'est lui qui causait le rollback
+    }
+
     @Override
     public void tick() {
         super.tick();
 
-        // 1. Calcul de la force, lecture des touches et de la gravité
-        this.updateAcceleration();
+        // 1. Apparition des hitboxes (Serveur uniquement)
+        if (!this.level().isClientSide() && !this.hitboxesSpawned) {
+            this.spawnHitboxes();
+            this.hitboxesSpawned = true;
+        }
 
-        // 2. Application de la vitesse et gestion des collisions avec le décor
-        this.updateSpeed();
-    }
-
-    protected void updateAcceleration() {
+        // 2. Gestion de la Physique et du Réseau
         if (this.isVehicle() && this.getControllingPassenger() instanceof Player driver) {
-
-            // Le Serveur ET le Client connaissent "driver.zza" grâce au réseau natif de Minecraft.
-            // On calcule donc la poussée des DEUX côtés en même temps pour une synchro parfaite.
-            float forwardImpulse = driver.zza;
-            float strafeImpulse = -driver.xxa;
-
-            if (forwardImpulse != 0) {
-                // Mise à jour de la rotation
-                this.setYRot(this.getYRot() + strafeImpulse * 4.0f);
-            }
-
-            double speedMultiplier = 0.6;
-            Vec3 forwardVec = Vec3.directionFromRotation(0, this.getYRot());
-
-            double motionX = forwardVec.x * forwardImpulse * speedMultiplier;
-            double motionZ = forwardVec.z * forwardImpulse * speedMultiplier;
-            double motionY = this.isNoGravity() ? 0.0 : -0.08;
-
-            this.setDeltaMovement(motionX, motionY, motionZ);
-
-            // Cette ligne s'assure que le corps de l'entité suit bien la rotation de la tête
-            this.setYBodyRot(this.getYRot());
-
+            this.updateAcceleration(driver);
+            this.updateSpeed();
         } else {
-            // Sans conducteur : friction
             Vec3 current = this.getDeltaMovement();
             double motionY = this.isNoGravity() ? 0.0 : -0.08;
             this.setDeltaMovement(current.x * 0.5, motionY, current.z * 0.5);
+            this.updateSpeed();
         }
+
+        // 3. Aligne la rotation visuelle pour le Client et le Serveur
+        this.setYBodyRot(this.getYRot());
+    }
+
+    protected void updateAcceleration(Player driver) {
+        float forwardImpulse = driver.zza;
+        float strafeImpulse = -driver.xxa;
+
+        if (forwardImpulse != 0) {
+            this.setYRot(this.getYRot() + strafeImpulse * 4.0f);
+        }
+
+        double speedMultiplier = 0.6;
+        Vec3 forwardVec = Vec3.directionFromRotation(0, this.getYRot());
+
+        double motionX = forwardVec.x * forwardImpulse * speedMultiplier;
+        double motionZ = forwardVec.z * forwardImpulse * speedMultiplier;
+        double motionY = this.isNoGravity() ? 0.0 : -0.08;
+
+        this.setDeltaMovement(motionX, motionY, motionZ);
     }
 
     protected void updateSpeed() {
-        // Le MoverType.SELF gère automatiquement le fait de buter contre un mur
-        // ou de monter automatiquement un bloc (step height) si on l'active plus tard
         this.move(net.minecraft.world.entity.MoverType.SELF, this.getDeltaMovement());
     }
 
@@ -132,7 +186,8 @@ public class VehicleEntity extends Entity implements GeoEntity {
     protected void positionRider(Entity passenger, Entity.MoveFunction callback) {
         super.positionRider(passenger, callback);
         if (this.hasPassenger(passenger)) {
-            // On place le joueur au centre de la hitbox, surélevé de 0.5 bloc pour qu'il ne rentre pas dans le sol
+            // On place le joueur au centre de la hitbox, surélevé de 0.5 bloc pour qu'il ne
+            // rentre pas dans le sol
             callback.accept(passenger, this.getX(), this.getY() + 0.5, this.getZ());
         }
     }
