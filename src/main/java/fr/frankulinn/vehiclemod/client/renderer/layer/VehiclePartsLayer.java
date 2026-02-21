@@ -37,7 +37,7 @@ public class VehiclePartsLayer extends GeoRenderLayer<VehicleEntity> {
 
                 poseStack.pushPose();
 
-                poseStack.translate(offset.x, offset.y, -offset.z);
+                poseStack.translate(offset.x, offset.y, offset.z);
 
                 BakedGeoModel bakedEngineModel = this.engineModel
                         .getBakedModel(this.engineModel.getModelResource(animatable));
