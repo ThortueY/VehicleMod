@@ -100,11 +100,15 @@ public class VehicleEntity extends Entity implements GeoEntity {
         // 1. Synchro du Moteur (Présence ET Fixation)
         fr.frankulinn.vehiclemod.entity.parts.PartSlot engineSlot = this.getSlot("engine_bay");
         this.entityData.set(HAS_ENGINE, engineSlot != null && engineSlot.getPart() != null);
-
-        // 🔥 C'est la ligne qui manquait ! On vérifie si le moteur est bien fixé avec la clé
         this.entityData.set(ENGINE_SECURED, engineSlot != null && engineSlot.isSecured());
 
-        // 2. Synchro des Roues (Pour l'affichage visuel de GeckoLib)
+        // 🔥 NOUVEAU : Synchro des types de roues pour l'affichage visuel
+        this.entityData.set(WHEEL_FL, getWheelTypeAt("wheel_front_left"));
+        this.entityData.set(WHEEL_FR, getWheelTypeAt("wheel_front_right"));
+        this.entityData.set(WHEEL_BL, getWheelTypeAt("wheel_back_left"));
+        this.entityData.set(WHEEL_BR, getWheelTypeAt("wheel_back_right"));
+
+        // 2. Compte des roues pour la vitesse
         int count = 0;
         if (this.getSlot("wheel_front_left") != null && this.getSlot("wheel_front_left").isSecured()) count++;
         if (this.getSlot("wheel_front_right") != null && this.getSlot("wheel_front_right").isSecured()) count++;
@@ -113,6 +117,7 @@ public class VehicleEntity extends Entity implements GeoEntity {
 
         this.entityData.set(SECURED_WHEELS, count);
     }
+
     private String getWheelTypeAt(String slotId) {
         PartSlot slot = this.getSlot(slotId);
         if (slot != null && slot.getPart() instanceof fr.frankulinn.vehiclemod.entity.parts.WheelPart wheel) {

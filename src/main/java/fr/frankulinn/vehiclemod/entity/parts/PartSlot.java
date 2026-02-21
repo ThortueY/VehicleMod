@@ -12,7 +12,7 @@ public class PartSlot {
     private final float hitboxWidth;
     private final float hitboxHeight;
 
-    public PartSlot(String id, net.minecraft.world.phys.Vec3 offset, float hitboxWidth, float hitboxHeight) {
+    public PartSlot(String id, Vec3 offset, float hitboxWidth, float hitboxHeight) {
         this.slotId = id;
         this.offset = offset;
         this.state = fr.frankulinn.vehiclemod.entity.parts.PartState.EMPTY;

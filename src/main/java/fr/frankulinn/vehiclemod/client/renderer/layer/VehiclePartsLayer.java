@@ -3,7 +3,9 @@ package fr.frankulinn.vehiclemod.client.renderer.layer;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import fr.frankulinn.vehiclemod.client.model.EngineModel;
+import fr.frankulinn.vehiclemod.client.model.WheelModel;
 import fr.frankulinn.vehiclemod.entity.VehicleEntity;
+import fr.frankulinn.vehiclemod.entity.parts.PartSlot;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import software.bernie.geckolib.cache.object.BakedGeoModel;
@@ -16,6 +18,7 @@ public class VehiclePartsLayer extends GeoRenderLayer<VehicleEntity> {
 
     // On instancie le modèle du moteur pour pouvoir le dessiner
     private final EngineModel engineModel = new EngineModel();
+    private final WheelModel wheelModel = new WheelModel();
 
     public VehiclePartsLayer(GeoEntityRenderer<VehicleEntity> entityRendererIn) {
         super(entityRendererIn);
@@ -24,9 +27,9 @@ public class VehiclePartsLayer extends GeoRenderLayer<VehicleEntity> {
     @Override
     public void render(PoseStack poseStack, VehicleEntity animatable, BakedGeoModel bakedModel, RenderType renderType, MultiBufferSource bufferSource, VertexConsumer buffer, float partialTick, int packedLight, int packedOverlay) {
 
+        // --- 1. RENDU DU MOTEUR ---
         if (animatable.getEntityData().get(VehicleEntity.HAS_ENGINE)) {
 
-            // 1. On récupère les coordonnées de la hitbox du moteur !
             fr.frankulinn.vehiclemod.entity.parts.PartSlot engineSlot = animatable.getSlot("engine_bay");
 
             if (engineSlot != null && engineSlot.getOffset() != null) {
@@ -34,9 +37,6 @@ public class VehiclePartsLayer extends GeoRenderLayer<VehicleEntity> {
 
                 poseStack.pushPose();
 
-                // 2. On déplace le modèle aux coordonnées exactes de la hitbox !
-                // NOTE : Dans Minecraft/GeckoLib, l'axe X est souvent inversé (-offset.x) pour les modèles.
-                // L'axe Y est la hauteur, l'axe Z est la profondeur.
                 poseStack.translate(-offset.x, offset.y, offset.z);
 
                 BakedGeoModel bakedEngineModel = this.engineModel.getBakedModel(this.engineModel.getModelResource(animatable));
@@ -44,6 +44,51 @@ public class VehiclePartsLayer extends GeoRenderLayer<VehicleEntity> {
                 VertexConsumer engineBuffer = bufferSource.getBuffer(engineRenderType);
 
                 this.getRenderer().reRender(bakedEngineModel, poseStack, bufferSource, animatable, engineRenderType, engineBuffer, partialTick, packedLight, packedOverlay, 0xFFFFFFFF);
+
+                poseStack.popPose();
+            }
+        } // <-- L'ACCOLADE DU MOTEUR SE FERME ICI
+
+        // --- 2. RENDU DES ROUES ---
+        // Elles sont maintenant indépendantes du moteur !
+        renderWheel(poseStack, animatable, bufferSource, partialTick, packedLight, packedOverlay, "wheel_front_left", VehicleEntity.WHEEL_FL);
+        renderWheel(poseStack, animatable, bufferSource, partialTick, packedLight, packedOverlay, "wheel_front_right", VehicleEntity.WHEEL_FR);
+        renderWheel(poseStack, animatable, bufferSource, partialTick, packedLight, packedOverlay, "wheel_back_left", VehicleEntity.WHEEL_BL);
+        renderWheel(poseStack, animatable, bufferSource, partialTick, packedLight, packedOverlay, "wheel_back_right", VehicleEntity.WHEEL_BR);
+    }
+
+    private void renderWheel(PoseStack poseStack, VehicleEntity animatable, MultiBufferSource bufferSource, float partialTick, int packedLight, int packedOverlay, String slotId, net.minecraft.network.syncher.EntityDataAccessor<String> dataAccessor) {
+
+        // On lit le type de roue via le réseau (ex: "offroad", "kart", ou "none")
+        String wheelType = animatable.getEntityData().get(dataAccessor);
+
+        if (!wheelType.equals("none")) {
+            PartSlot slot = animatable.getSlot(slotId);
+
+            if (slot != null && slot.getOffset() != null) {
+                net.minecraft.world.phys.Vec3 offset = slot.getOffset();
+
+                poseStack.pushPose();
+
+                // 1. On déplace le pinceau sur la hitbox
+                poseStack.translate(-offset.x, offset.y, offset.z);
+
+                // 🔥 ASTUCE DE PRO :
+                // Les roues du côté droit (X négatif) doivent être retournées de 180° pour que la jante soit vers l'extérieur !
+                if (offset.x < 0) {
+                    poseStack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(180f));
+                }
+
+                // 2. On dit au modèle quel fichier charger
+                this.wheelModel.setWheelType(wheelType);
+
+                // 3. On prépare le modèle et la texture
+                software.bernie.geckolib.cache.object.BakedGeoModel bakedModel = this.wheelModel.getBakedModel(this.wheelModel.getModelResource(animatable));
+                RenderType renderType = RenderType.entityCutoutNoCull(this.wheelModel.getTextureResource(animatable));
+                com.mojang.blaze3d.vertex.VertexConsumer buffer = bufferSource.getBuffer(renderType);
+
+                // 4. On dessine !
+                this.getRenderer().reRender(bakedModel, poseStack, bufferSource, animatable, renderType, buffer, partialTick, packedLight, packedOverlay, 0xFFFFFFFF);
 
                 poseStack.popPose();
             }
