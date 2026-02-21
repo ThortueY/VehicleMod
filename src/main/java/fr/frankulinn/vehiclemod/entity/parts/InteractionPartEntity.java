@@ -34,7 +34,9 @@ public class InteractionPartEntity extends Entity {
         this.parentVehicle = parentVehicle;
         this.slotId = slotId;
         this.offset = offset;
-        this.setBoundingBox(new AABB(0, 0, 0, width, height, width));
+        double halfW = width / 2.0;
+        double halfH = height / 2.0;
+        this.setBoundingBox(new AABB(-halfW, -halfH, -halfW, halfW, halfH, halfW));
     }
 
     @Override
@@ -55,38 +57,48 @@ public class InteractionPartEntity extends Entity {
 
     @Override
     public InteractionResult interact(Player player, InteractionHand hand) {
-        // 1. LE CLIENT : Il s'arrête ici mais renvoie SUCCESS pour forcer l'envoi du paquet au Serveur !
+        // 1. LE CLIENT : Il s'arrête ici mais renvoie SUCCESS pour forcer l'envoi du
+        // paquet au Serveur !
         if (this.level().isClientSide()) {
             return InteractionResult.SUCCESS;
         }
 
         // 2. LE SERVEUR : Gère toute la logique à partir d'ici
-        if (this.parentVehicle == null) return InteractionResult.PASS;
+        if (this.parentVehicle == null)
+            return InteractionResult.PASS;
 
         fr.frankulinn.vehiclemod.entity.parts.PartSlot slot = this.parentVehicle.getSlot(this.slotId);
-        if (slot == null) return InteractionResult.PASS;
+        if (slot == null)
+            return InteractionResult.PASS;
 
         net.minecraft.world.item.ItemStack stackInHand = player.getItemInHand(hand);
 
         // SI L'EMPLACEMENT EST VIDE
         if (slot.isEmpty()) {
             if (stackInHand.isEmpty()) {
-                player.displayClientMessage(net.minecraft.network.chat.Component.literal("§eEmplacement : " + this.slotId + " (Vide)"), true);
+                player.displayClientMessage(
+                        net.minecraft.network.chat.Component.literal("§eEmplacement : " + this.slotId + " (Vide)"),
+                        true);
                 return InteractionResult.SUCCESS;
             }
 
             // LOGIQUE MOTEUR
             if (this.slotId.equals("engine_bay")) {
                 if (stackInHand.getItem() instanceof EngineItem) {
-                    fr.frankulinn.vehiclemod.entity.parts.EnginePart newEngine = new fr.frankulinn.vehiclemod.entity.parts.EnginePart(150.0f, 200.0f);
+                    fr.frankulinn.vehiclemod.entity.parts.EnginePart newEngine = new fr.frankulinn.vehiclemod.entity.parts.EnginePart(
+                            150.0f, 200.0f);
 
                     if (slot.installPart(newEngine)) {
-                        if (!player.isCreative()) stackInHand.shrink(1);
-                        player.displayClientMessage(net.minecraft.network.chat.Component.literal("§aMoteur posé ! (Non fixé)"), true);
-                        this.parentVehicle.updatePartsSync();  // Met à jour le Client
+                        if (!player.isCreative())
+                            stackInHand.shrink(1);
+                        player.displayClientMessage(
+                                net.minecraft.network.chat.Component.literal("§aMoteur posé ! (Non fixé)"), true);
+                        this.parentVehicle.updatePartsSync(); // Met à jour le Client
                     }
                 } else {
-                    player.displayClientMessage(net.minecraft.network.chat.Component.literal("§cCet emplacement nécessite un Moteur !"), true);
+                    player.displayClientMessage(
+                            net.minecraft.network.chat.Component.literal("§cCet emplacement nécessite un Moteur !"),
+                            true);
                 }
                 return InteractionResult.CONSUME;
             }
@@ -96,12 +108,16 @@ public class InteractionPartEntity extends Entity {
                     WheelPart newWheel = new WheelPart(1.0f, 15.0f, "kart_wheel");
 
                     if (slot.installPart(newWheel)) {
-                        if (!player.isCreative()) stackInHand.shrink(1);
-                        player.displayClientMessage(net.minecraft.network.chat.Component.literal("§aRoue posée ! (Non fixée)"), true);
+                        if (!player.isCreative())
+                            stackInHand.shrink(1);
+                        player.displayClientMessage(
+                                net.minecraft.network.chat.Component.literal("§aRoue posée ! (Non fixée)"), true);
                         this.parentVehicle.updatePartsSync(); // Met à jour le Client
                     }
                 } else {
-                    player.displayClientMessage(net.minecraft.network.chat.Component.literal("§cCet emplacement nécessite une Roue !"), true);
+                    player.displayClientMessage(
+                            net.minecraft.network.chat.Component.literal("§cCet emplacement nécessite une Roue !"),
+                            true);
                 }
                 return InteractionResult.CONSUME;
             }
@@ -111,24 +127,30 @@ public class InteractionPartEntity extends Entity {
             if (!slot.isSecured()) {
                 if (stackInHand.getItem() instanceof WrenchItem) {
                     if (slot.securePart()) {
-                        player.displayClientMessage(net.minecraft.network.chat.Component.literal("§aPièce fixée et prête à l'usage !"), true);
+                        player.displayClientMessage(
+                                net.minecraft.network.chat.Component.literal("§aPièce fixée et prête à l'usage !"),
+                                true);
                         this.parentVehicle.updatePartsSync();
                     }
                 } else if (stackInHand.isEmpty()) {
                     slot.removePart();
-                    player.displayClientMessage(net.minecraft.network.chat.Component.literal("§ePièce retirée !"), true);
+                    player.displayClientMessage(net.minecraft.network.chat.Component.literal("§ePièce retirée !"),
+                            true);
                     this.parentVehicle.updatePartsSync();
                 } else {
-                    player.displayClientMessage(net.minecraft.network.chat.Component.literal("§cUtilisez une Clé pour fixer, ou les mains vides pour enlever."), true);
+                    player.displayClientMessage(net.minecraft.network.chat.Component
+                            .literal("§cUtilisez une Clé pour fixer, ou les mains vides pour enlever."), true);
                 }
             } else {
                 if (stackInHand.getItem() instanceof WrenchItem) {
                     if (slot.unsecurePart()) {
-                        player.displayClientMessage(net.minecraft.network.chat.Component.literal("§ePièce dévissée."), true);
+                        player.displayClientMessage(net.minecraft.network.chat.Component.literal("§ePièce dévissée."),
+                                true);
                         this.parentVehicle.updatePartsSync();
                     }
                 } else {
-                    player.displayClientMessage(net.minecraft.network.chat.Component.literal("§cCette pièce est vissée ! Utilisez une Clé."), true);
+                    player.displayClientMessage(net.minecraft.network.chat.Component
+                            .literal("§cCette pièce est vissée ! Utilisez une Clé."), true);
                 }
             }
             return InteractionResult.SUCCESS;
@@ -137,7 +159,8 @@ public class InteractionPartEntity extends Entity {
         return InteractionResult.PASS;
     }
 
-    // Petite méthode utilitaire pour traduire les ID techniques en joli texte pour les joueurs
+    // Petite méthode utilitaire pour traduire les ID techniques en joli texte pour
+    // les joueurs
     private String getReadableSlotName(String slotId) {
         return switch (slotId) {
             case "engine_bay" -> "Baie Moteur";

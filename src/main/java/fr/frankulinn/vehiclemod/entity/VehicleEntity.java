@@ -43,6 +43,10 @@ public class VehicleEntity extends Entity implements GeoEntity {
     private final Map<String, PartSlot> partSlots = new HashMap<>();
     private final List<InteractionPartEntity> hitboxes = new ArrayList<>();
     private boolean hitboxesSpawned = false;
+    public float wheelRotation = 0.0f;
+    public float prevWheelRotation = 0.0f;
+    public float steeringAngle = 0.0f;
+    public float prevSteeringAngle = 0.0f;
 
     // Constructeur obligatoire pour que Minecraft puisse spawner l'entité
     public VehicleEntity(EntityType<?> entityType, Level level) {
@@ -179,8 +183,40 @@ public class VehicleEntity extends Entity implements GeoEntity {
             this.updateSpeed();
         }
 
-        // 3. Aligne la rotation visuelle pour le Client et le Serveur
+        // 3. Aligne la rotation visuelle
         this.setYBodyRot(this.getYRot());
+
+        // --- NOUVEAU : 4. ANIMATION DES ROUES (Client uniquement) ---
+        if (this.level().isClientSide()) {
+            this.prevWheelRotation = this.wheelRotation;
+            this.prevSteeringAngle = this.steeringAngle;
+
+            // Vitesse réelle de déplacement horizontal
+            double speed = this.getDeltaMovement().horizontalDistance();
+
+            if (speed > 0.01) {
+                // On vérifie si la voiture avance ou recule par rapport à sa direction
+                Vec3 forwardVec = Vec3.directionFromRotation(0, this.getYRot());
+                boolean isReversing = this.getDeltaMovement().dot(forwardVec) < 0;
+
+                // Formule mathématique : Vitesse / Rayon de la roue.
+                // Le "4.0f" dépend de la taille de ta roue. Si elle tourne trop lentement, augmente-le !
+                float rotationSpeed = (float) speed * 4.0f;
+                this.wheelRotation += isReversing ? -rotationSpeed : rotationSpeed;
+            }
+
+            // Calcul du braquage (volant)
+            if (this.getControllingPassenger() instanceof Player driver) {
+                // xxa représente les touches Q/D (ou A/D). On multiplie par 35 degrés max.
+                float targetSteering = -driver.xxa * 35.0f;
+
+                // On lisse le mouvement avec un Lerp pour que les roues ne tournent pas de façon saccadée
+                this.steeringAngle += (targetSteering - this.steeringAngle) * 0.2f;
+            } else {
+                // Si personne ne conduit, les roues se remettent droites doucement
+                this.steeringAngle += (0.0f - this.steeringAngle) * 0.1f;
+            }
+        }
     }
 
     protected void updateAcceleration(Player driver) {
