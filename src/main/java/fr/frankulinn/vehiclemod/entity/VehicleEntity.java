@@ -51,32 +51,24 @@ public class VehicleEntity extends Entity implements GeoEntity {
     }
 
     private void initSlots() {
-        this.partSlots.put("engine_bay", new PartSlot("engine_bay"));
-        this.partSlots.put("wheel_front_left", new PartSlot("wheel_front_left"));
-        this.partSlots.put("wheel_front_right", new PartSlot("wheel_front_right"));
-        this.partSlots.put("wheel_back_left", new PartSlot("wheel_back_left"));
-        this.partSlots.put("wheel_back_right", new PartSlot("wheel_back_right"));
-    }
+        // ID du slot | Position (X, Y, Z) | Largeur de la hitbox | Hauteur de la hitbox
 
-    public PartSlot getSlot(String slotId) {
-        return this.partSlots.get(slotId);
+        // Le Moteur
+        this.partSlots.put("engine_bay", new fr.frankulinn.vehiclemod.entity.parts.PartSlot("engine_bay", new Vec3(0, 0.5, 1.0), 0.8f, 0.8f));
+
+        // Les 4 Roues
+        this.partSlots.put("wheel_front_left", new fr.frankulinn.vehiclemod.entity.parts.PartSlot("wheel_front_left", new Vec3(1.0, 0.2, 1.0), 0.5f, 0.5f));
+        this.partSlots.put("wheel_front_right", new fr.frankulinn.vehiclemod.entity.parts.PartSlot("wheel_front_right", new Vec3(-1.0, 0.2, 1.0), 0.5f, 0.5f));
+        this.partSlots.put("wheel_back_left", new fr.frankulinn.vehiclemod.entity.parts.PartSlot("wheel_back_left", new Vec3(1.0, 0.2, -1.0), 0.5f, 0.5f));
+        this.partSlots.put("wheel_back_right", new fr.frankulinn.vehiclemod.entity.parts.PartSlot("wheel_back_right", new Vec3(-1.0, 0.2, -1.0), 0.5f, 0.5f));
     }
 
     private void spawnHitboxes() {
-        // Le Moteur
-        createHitbox("engine_bay", new Vec3(0, 0.5, 1.0), 0.8f, 0.8f);
-
-        // Les 4 Roues (Largeur X, Hauteur Y, Profondeur Z)
-        // L'axe X : Positif = Gauche, Négatif = Droite
-        // L'axe Z : Positif = Avant, Négatif = Arrière
-
-        createHitbox("wheel_front_left", new Vec3(1.0, 0.2, 1.0), 0.5f, 0.5f);
-        createHitbox("wheel_front_right", new Vec3(-1.0, 0.2, 1.0), 0.5f, 0.5f); // Droite (X négatif)
-
-        createHitbox("wheel_back_left", new Vec3(1.0, 0.2, -1.0), 0.5f, 0.5f); // Arrière (Z négatif)
-        createHitbox("wheel_back_right", new Vec3(-1.0, 0.2, -1.0), 0.5f, 0.5f); // Arrière Droite
+        // On boucle sur tous les slots enregistrés et on génère leur hitbox automatiquement !
+        for (fr.frankulinn.vehiclemod.entity.parts.PartSlot slot : this.partSlots.values()) {
+            createHitbox(slot.getId(), slot.getOffset(), slot.getHitboxWidth(), slot.getHitboxHeight());
+        }
     }
-
     private void createHitbox(String slotId, Vec3 offset, float width, float height) {
         InteractionPartEntity hitbox = ModEntities.INTERACTION_PART.get().create(this.level());
         if (hitbox != null) {
@@ -306,6 +298,10 @@ public class VehicleEntity extends Entity implements GeoEntity {
     @Override
     public AnimatableInstanceCache getAnimatableInstanceCache() {
         return this.cache;
+    }
+
+    public PartSlot getSlot(String slotId) {
+        return this.partSlots.get(slotId);
     }
 
 

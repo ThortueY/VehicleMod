@@ -1,17 +1,27 @@
 package fr.frankulinn.vehiclemod.entity.parts;
 
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.phys.Vec3;
 
 public class PartSlot {
 
     private final String slotId; // ex: "engine_bay", "wheel_front_left"
     private PartState state;
     private VehiclePart installedPart;
+    private final Vec3 offset;
+    private final float hitboxWidth;
+    private final float hitboxHeight;
 
-    public PartSlot(String slotId) {
-        this.slotId = slotId;
-        this.state = PartState.EMPTY;
-        this.installedPart = null;
+    public PartSlot(String id, net.minecraft.world.phys.Vec3 offset, float hitboxWidth, float hitboxHeight) {
+        this.slotId = id;
+        this.offset = offset;
+        this.state = fr.frankulinn.vehiclemod.entity.parts.PartState.EMPTY;
+        this.hitboxWidth = hitboxWidth;
+        this.hitboxHeight = hitboxHeight;
+    }
+
+    public net.minecraft.world.phys.Vec3 getOffset() {
+        return this.offset;
     }
 
     // Le joueur pose la pièce à la main
@@ -49,6 +59,9 @@ public class PartSlot {
         return false;
     }
 
+    public float getHitboxWidth() { return this.hitboxWidth; }
+    public float getHitboxHeight() { return this.hitboxHeight; }
+
     public boolean isSecured() {
         return this.state == PartState.SECURED;
     }
@@ -61,7 +74,7 @@ public class PartSlot {
         return this.installedPart;
     }
 
-    public String getSlotId() {
+    public String getId() {
         return this.slotId;
     }
 
