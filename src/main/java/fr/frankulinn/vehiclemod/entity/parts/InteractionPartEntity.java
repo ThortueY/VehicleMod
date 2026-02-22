@@ -82,6 +82,26 @@ public class InteractionPartEntity extends Entity {
                 return InteractionResult.SUCCESS;
             }
 
+            if (this.slotId.equals("fuel_cap")) {
+                if (stackInHand.getItem() instanceof fr.frankulinn.vehiclemod.item.JerricanItem) {
+                    float currentFuel = this.parentVehicle.getEntityData().get(VehicleEntity.FUEL_LEVEL);
+
+                    if (currentFuel < VehicleEntity.MAX_FUEL) {
+                        this.parentVehicle.getEntityData().set(VehicleEntity.FUEL_LEVEL, VehicleEntity.MAX_FUEL);
+
+                        if (!player.isCreative()) {
+                            stackInHand.shrink(1);
+                        }
+                        player.displayClientMessage(net.minecraft.network.chat.Component.literal("§aPlein effectué ! ⛽ (100%)"), true);
+                    } else {
+                        player.displayClientMessage(net.minecraft.network.chat.Component.literal("§eLe réservoir est déjà plein !"), true);
+                    }
+                } else {
+                    player.displayClientMessage(net.minecraft.network.chat.Component.literal("§cC'est la trappe à essence. Utilisez un Jerrican ici !"), true);
+                }
+                return InteractionResult.SUCCESS;
+            }
+
             // LOGIQUE MOTEUR
             if (this.slotId.equals("engine_bay")) {
                 if (stackInHand.getItem() instanceof EngineItem) {
@@ -144,13 +164,30 @@ public class InteractionPartEntity extends Entity {
             } else {
                 if (stackInHand.getItem() instanceof WrenchItem) {
                     if (slot.unsecurePart()) {
-                        player.displayClientMessage(net.minecraft.network.chat.Component.literal("§ePièce dévissée."),
-                                true);
+                        player.displayClientMessage(net.minecraft.network.chat.Component.literal("§ePièce dévissée."), true);
                         this.parentVehicle.updatePartsSync();
                     }
-                } else {
-                    player.displayClientMessage(net.minecraft.network.chat.Component
-                            .literal("§cCette pièce est vissée ! Utilisez une Clé."), true);
+                }
+                // --- NOUVEAU : LE PLEIN D'ESSENCE ---
+                else if (stackInHand.getItem() instanceof fr.frankulinn.vehiclemod.item.JerricanItem && this.slotId.equals("engine_bay")) {
+                    float currentFuel = this.parentVehicle.getEntityData().get(VehicleEntity.FUEL_LEVEL);
+
+                    if (currentFuel < VehicleEntity.MAX_FUEL) {
+                        // On remplit au max !
+                        this.parentVehicle.getEntityData().set(VehicleEntity.FUEL_LEVEL, VehicleEntity.MAX_FUEL);
+
+                        // On consomme le jerrican en survie
+                        if (!player.isCreative()) {
+                            stackInHand.shrink(1);
+                        }
+
+                        player.displayClientMessage(net.minecraft.network.chat.Component.literal("§aPlein effectué ! ⛽ (100%)"), true);
+                    } else {
+                        player.displayClientMessage(net.minecraft.network.chat.Component.literal("§eLe réservoir est déjà plein !"), true);
+                    }
+                }
+                else {
+                    player.displayClientMessage(net.minecraft.network.chat.Component.literal("§cCette pièce est vissée ! Utilisez une Clé (ou un Jerrican pour le moteur)."), true);
                 }
             }
             return InteractionResult.SUCCESS;
@@ -168,6 +205,7 @@ public class InteractionPartEntity extends Entity {
             case "wheel_front_right" -> "Roue Avant Droite";
             case "wheel_back_left" -> "Roue Arrière Gauche";
             case "wheel_back_right" -> "Roue Arrière Droite";
+            case "fuel_cap" -> "Trappe à Essence";
             default -> "Pièce Inconnue";
         };
     }

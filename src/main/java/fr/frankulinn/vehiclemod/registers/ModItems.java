@@ -2,6 +2,7 @@ package fr.frankulinn.vehiclemod.registers;
 
 import fr.frankulinn.vehiclemod.Vehiclemod;
 import fr.frankulinn.vehiclemod.item.EngineItem;
+import fr.frankulinn.vehiclemod.item.JerricanItem;
 import fr.frankulinn.vehiclemod.item.WheelItem;
 import fr.frankulinn.vehiclemod.item.WrenchItem;
 import net.minecraft.world.item.Item;
@@ -21,6 +22,9 @@ public class ModItems {
     public static final DeferredItem<Item> WRENCH_ITEM = ITEMS.register("wrench", () -> new WrenchItem(new Item.Properties()));
 
     public static final DeferredItem<Item> WHEEL_ITEM = ITEMS.register("wheel", () -> new WheelItem(new Item.Properties()));
+
+    public static final DeferredItem<Item> JERRICAN_ITEM = ITEMS.register("jerrican", () -> new JerricanItem(new Item.Properties()));
+
 
 
 }

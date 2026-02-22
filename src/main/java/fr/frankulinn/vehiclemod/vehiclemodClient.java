@@ -26,6 +26,15 @@ public class vehiclemodClient {
         container.registerExtensionPoint(IConfigScreenFactory.class, ConfigurationScreen::new);
 
     }
+    @net.neoforged.bus.api.SubscribeEvent
+    public static void registerGuiLayers(net.neoforged.neoforge.client.event.RegisterGuiLayersEvent event) {
+        // On affiche notre HUD juste au-dessus de la barre d'inventaire classique (HOTBAR)
+        event.registerAbove(
+                net.neoforged.neoforge.client.gui.VanillaGuiLayers.HOTBAR,
+                net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("vehiclemod", "vehicle_hud"),
+                fr.frankulinn.vehiclemod.client.gui.VehicleHudOverlay.INSTANCE
+        );
+    }
 
     @SubscribeEvent
     public static void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {

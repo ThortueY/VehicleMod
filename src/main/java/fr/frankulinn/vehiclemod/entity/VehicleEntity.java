@@ -39,6 +39,8 @@ public class VehicleEntity extends Entity implements GeoEntity {
     public static final EntityDataAccessor<String> WHEEL_FR = SynchedEntityData.defineId(VehicleEntity.class, EntityDataSerializers.STRING);
     public static final EntityDataAccessor<String> WHEEL_BL = SynchedEntityData.defineId(VehicleEntity.class, EntityDataSerializers.STRING);
     public static final EntityDataAccessor<String> WHEEL_BR = SynchedEntityData.defineId(VehicleEntity.class, EntityDataSerializers.STRING);
+    public static final EntityDataAccessor<Float> FUEL_LEVEL = SynchedEntityData.defineId(VehicleEntity.class, EntityDataSerializers.FLOAT);
+    public static final float MAX_FUEL = 100.0f; // La capacité maximum du réservoir
 
     private final Map<String, PartSlot> partSlots = new HashMap<>();
     private final List<InteractionPartEntity> hitboxes = new ArrayList<>();
@@ -65,6 +67,7 @@ public class VehicleEntity extends Entity implements GeoEntity {
         this.partSlots.put("wheel_front_right", new PartSlot("wheel_front_right", new Vec3(-1.0, 0.2, 1.0), 0.5f, 0.5f));
         this.partSlots.put("wheel_back_left", new PartSlot("wheel_back_left", new Vec3(1.0, 0.2, -1.0), 0.5f, 0.5f));
         this.partSlots.put("wheel_back_right", new PartSlot("wheel_back_right", new Vec3(-1.0, 0.2, -1.0), 0.5f, 0.5f));
+        this.partSlots.put("fuel_cap", new fr.frankulinn.vehiclemod.entity.parts.PartSlot("fuel_cap", new Vec3(0.8, 0.5, -1.0), 0.4f, 0.4f));
     }
 
     private void spawnHitboxes() {
@@ -98,6 +101,7 @@ public class VehicleEntity extends Entity implements GeoEntity {
         builder.define(WHEEL_FR, "none");
         builder.define(WHEEL_BL, "none");
         builder.define(WHEEL_BR, "none");
+        builder.define(FUEL_LEVEL, 0.0f);
     }
 
     public void updatePartsSync() {
@@ -223,19 +227,30 @@ public class VehicleEntity extends Entity implements GeoEntity {
         float forwardImpulse = driver.zza;
         float strafeImpulse = -driver.xxa;
 
-        if (forwardImpulse != 0) {
-            this.setYRot(this.getYRot() + strafeImpulse * 4.0f);
-        }
-
         double speedMultiplier = 0.0;
+        float currentFuel = this.entityData.get(FUEL_LEVEL);
 
-        if (this.entityData.get(HAS_ENGINE) && this.entityData.get(ENGINE_SECURED)) {
-            speedMultiplier = 150.0 / 250.0; // 0.6
+        // 1. On calcule d'abord si la voiture PEUT avancer
+        if (this.entityData.get(HAS_ENGINE) && this.entityData.get(ENGINE_SECURED) && currentFuel > 0) {
+            speedMultiplier = 150.0 / 250.0;
+
+            // On ne consomme de l'essence que si on appuie vraiment sur l'accélérateur
+            if (forwardImpulse != 0 && !this.level().isClientSide()) {
+                float newFuel = Math.max(0.0f, currentFuel - 0.05f);
+                this.entityData.set(FUEL_LEVEL, newFuel);
+            }
         }
 
+        // On ajuste selon le nombre de roues
         int securedWheels = this.entityData.get(SECURED_WHEELS);
         speedMultiplier *= (securedWheels / 4.0);
 
+        // --- CORRECTION ICI : On tourne uniquement si on appuie sur Z/S ET que le kart peut rouler ! ---
+        if (forwardImpulse != 0 && speedMultiplier > 0) {
+            this.setYRot(this.getYRot() + strafeImpulse * 4.0f);
+        }
+
+        // 2. On applique le mouvement
         Vec3 forwardVec = Vec3.directionFromRotation(0, this.getYRot());
 
         double motionX = forwardVec.x * forwardImpulse * speedMultiplier;
@@ -260,6 +275,7 @@ public class VehicleEntity extends Entity implements GeoEntity {
         }
 
         compound.put("PartSlots", slotsTag);
+        compound.putFloat("FuelLevel", this.entityData.get(FUEL_LEVEL));
     }
 
     // Chargement des données quand on rejoint le monde
@@ -275,6 +291,10 @@ public class VehicleEntity extends Entity implements GeoEntity {
                     slot.load(slotsTag.getCompound(slotId));
                 }
             }
+        }
+
+        if (compound.contains("FuelLevel")) {
+            this.entityData.set(FUEL_LEVEL, compound.getFloat("FuelLevel"));
         }
 
         // 🔥 CRUCIAL : Une fois que le serveur a rechargé les pièces depuis le fichier,
