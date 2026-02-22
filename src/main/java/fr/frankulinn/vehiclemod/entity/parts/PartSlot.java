@@ -96,6 +96,10 @@ public class PartSlot {
                 partTag.putString("Type", "Engine");
                 partTag.putFloat("Horsepower", engine.getHorsepower());
                 partTag.putFloat("Weight", engine.getWeight());
+
+                // --- NOUVEAU : ON SAUVEGARDE ENFIN L'ESSENCE ET LA VITESSE ! ---
+                partTag.putFloat("MaxSpeed", engine.getMaxSpeed());
+                partTag.putFloat("FuelConsumption", engine.getFuelConsumption());
             }
             else if (this.installedPart instanceof fr.frankulinn.vehiclemod.entity.parts.WheelPart wheel) {
                 partTag.putString("Type", "Wheel");
@@ -126,7 +130,9 @@ public class PartSlot {
             // On recrée l'objet pièce selon son type sauvegardé
             if (type.equals("Engine")) {
                 float hp = partTag.getFloat("Horsepower");
-                this.installedPart = new fr.frankulinn.vehiclemod.entity.parts.EnginePart(hp, weight);
+                float maxSpeed = partTag.getFloat("MaxSpeed");
+                float fuelConsumption = partTag.getFloat("FuelConsumption");
+                this.installedPart = new fr.frankulinn.vehiclemod.entity.parts.EnginePart(hp, weight,maxSpeed, fuelConsumption );
             }
             else if (type.equals("Wheel")) {
                 float grip = partTag.getFloat("Grip");

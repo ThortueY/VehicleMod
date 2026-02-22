@@ -20,7 +20,7 @@ public class EngineBayInteraction implements SlotInteraction {
         // 1. SI L'EMPLACEMENT EST VIDE
         if (slot.isEmpty()) {
             if (stackInHand.getItem() instanceof EngineItem) {
-                EnginePart newEngine = new EnginePart(150.0f, 200.0f);
+                EnginePart newEngine = new EnginePart(150.0f, 150.0f, 30.0f , 0.05f);
                 if (slot.installPart(newEngine)) {
                     if (!player.isCreative()) stackInHand.shrink(1);
                     player.displayClientMessage(Component.literal("§aMoteur posé ! (Non fixé)"), true);

@@ -68,6 +68,13 @@ public class VehicleEntity extends Entity implements GeoEntity {
         this.partSlots.put("wheel_back_left", new PartSlot("wheel_back_left", new Vec3(1.0, 0.2, -1.0), 0.5f, 0.5f, new WheelInteraction()));
         this.partSlots.put("wheel_back_right", new PartSlot("wheel_back_right", new Vec3(-1.0, 0.2, -1.0), 0.5f, 0.5f, new WheelInteraction()));
         this.partSlots.put("fuel_cap", new fr.frankulinn.vehiclemod.entity.parts.PartSlot("fuel_cap", new Vec3(0.8, 0.5, -1.0), 0.4f, 0.4f, new FuelCapInteraction()));
+
+
+    }
+
+    @Override
+    public float maxUpStep() {
+        return 1.0f;
     }
 
     private void spawnHitboxes() {
@@ -224,43 +231,110 @@ public class VehicleEntity extends Entity implements GeoEntity {
     }
 
     protected void updateAcceleration(Player driver) {
-        float forwardImpulse = driver.zza;
-        float strafeImpulse = -driver.xxa;
+        float forwardImpulse = driver.zza; // Z = Avancer/Reculer
+        float strafeImpulse = -driver.xxa; // X = Gauche/Droite
 
-        double speedMultiplier = 0.0;
+        double enginePower = 0.0;
         float currentFuel = this.entityData.get(FUEL_LEVEL);
 
-        // 1. On calcule d'abord si la voiture PEUT avancer
+        // 1. Calcul de la puissance du moteur
         if (this.entityData.get(HAS_ENGINE) && this.entityData.get(ENGINE_SECURED) && currentFuel > 0) {
-            speedMultiplier = 150.0 / 250.0;
+            enginePower = 0.05;
 
-            // On ne consomme de l'essence que si on appuie vraiment sur l'accélérateur
             if (forwardImpulse != 0 && !this.level().isClientSide()) {
-                float newFuel = Math.max(0.0f, currentFuel - 0.05f);
+
+                // --- NOUVEAU : On récupère la consommation dynamique ---
+                float consumptionRate = 0.05f; // Valeur de secours par défaut
+
+                fr.frankulinn.vehiclemod.entity.parts.PartSlot engineSlot = this.getSlot("engine_bay");
+                if (engineSlot != null && engineSlot.getPart() instanceof fr.frankulinn.vehiclemod.entity.parts.EnginePart enginePart) {
+                    consumptionRate = enginePart.getFuelConsumption();
+                }
+                // -------------------------------------------------------
+
+                // On utilise la vraie consommation du moteur !
+                float newFuel = Math.max(0.0f, currentFuel - consumptionRate);
                 this.entityData.set(FUEL_LEVEL, newFuel);
             }
         }
 
-        // On ajuste selon le nombre de roues
+        // Ajustement selon le nombre de roues
         int securedWheels = this.entityData.get(SECURED_WHEELS);
-        speedMultiplier *= (securedWheels / 4.0);
+        enginePower *= (securedWheels / 4.0);
 
-        // --- CORRECTION ICI : On tourne uniquement si on appuie sur Z/S ET que le kart peut rouler ! ---
-        if (forwardImpulse != 0 && speedMultiplier > 0) {
-            this.setYRot(this.getYRot() + strafeImpulse * 4.0f);
+        // 2. On tourne UNIQUEMENT si le kart est en train de rouler (Vitesse > 0.05)
+        Vec3 currentMotion = this.getDeltaMovement();
+        double horizontalSpeed = currentMotion.horizontalDistance();
+
+        if (horizontalSpeed > 0.05) {
+            // Plus on va vite, plus le volant est réactif (tu pourras ajuster ce multiplicateur)
+            float turnSpeed = strafeImpulse * 4.0f;
+
+            // Si on recule, on inverse la direction du volant pour que ça reste naturel
+            if (forwardImpulse < 0) {
+                turnSpeed = -turnSpeed;
+            }
+            this.setYRot(this.getYRot() + turnSpeed);
         }
 
-        // 2. On applique le mouvement
+        // 3. Application de la force (Inertie)
         Vec3 forwardVec = Vec3.directionFromRotation(0, this.getYRot());
 
-        double motionX = forwardVec.x * forwardImpulse * speedMultiplier;
-        double motionZ = forwardVec.z * forwardImpulse * speedMultiplier;
-        double motionY = this.isNoGravity() ? 0.0 : -0.08;
+        // Au lieu de dire "La vitesse EST X", on dit "On AJOUTE X à la vitesse actuelle"
+        double addedMotionX = forwardVec.x * forwardImpulse * enginePower;
+        double addedMotionZ = forwardVec.z * forwardImpulse * enginePower;
 
-        this.setDeltaMovement(motionX, motionY, motionZ);
+        this.setDeltaMovement(currentMotion.add(addedMotionX, 0, addedMotionZ));
     }
 
     protected void updateSpeed() {
+        Vec3 currentMotion = this.getDeltaMovement();
+
+        // 1. La Gravité
+        double motionY = currentMotion.y;
+        if (!this.isNoGravity()) {
+            motionY -= 0.04;
+        }
+
+        // 2. La Friction de base (ralentissement)
+        float friction = this.onGround() ? 0.9f : 0.98f;
+
+        // --- NOUVEAU : ADHÉRENCE LATÉRALE (ANTI-DRIFT) ---
+        if (this.onGround()) {
+            // Dans quelle direction regarde exactement le kart ?
+            Vec3 forwardVec = Vec3.directionFromRotation(0, this.getYRot());
+
+            // Le "Dot Product" nous dit quelle fraction de notre inertie actuelle va
+            // VRAIMENT dans la direction de notre capot (positif = on avance, négatif = on recule).
+            double forwardSpeed = currentMotion.x * forwardVec.x + currentMotion.z * forwardVec.z;
+
+            // On crée un mouvement "Idéal" (toute l'énergie est redirigée dans l'axe des roues)
+            double idealX = forwardVec.x * forwardSpeed;
+            double idealZ = forwardVec.z * forwardSpeed;
+
+            // GRIP (Adhérence) : 1.0 = Un train sur des rails (0 drift). 0.0 = Patin à glace.
+            // 0.85 est un bon réglage pour un kart (ça grippe fort, mais on sent un tout petit dérapage à haute vitesse)
+            double grip = 0.85;
+
+            // On mixe le mouvement actuel (glissant) avec le mouvement idéal (droit)
+            double newMotionX = currentMotion.x + (idealX - currentMotion.x) * grip;
+            double newMotionZ = currentMotion.z + (idealZ - currentMotion.z) * grip;
+
+            // On applique la friction pour ralentir normalement
+            newMotionX *= friction;
+            newMotionZ *= friction;
+
+            // On limite la chute
+            motionY = motionY * 0.98;
+
+            this.setDeltaMovement(newMotionX, motionY, newMotionZ);
+        } else {
+            // Si on est en l'air (en plein saut), on garde notre drift, c'est normal !
+            this.setDeltaMovement(currentMotion.x * friction, motionY * 0.98, currentMotion.z * friction);
+        }
+        // -------------------------------------------------
+
+        // 3. Application finale du mouvement
         this.move(net.minecraft.world.entity.MoverType.SELF, this.getDeltaMovement());
     }
 
@@ -326,7 +400,7 @@ public class VehicleEntity extends Entity implements GeoEntity {
         if (this.hasPassenger(passenger)) {
             // On place le joueur au centre de la hitbox, surélevé de 0.5 bloc pour qu'il ne
             // rentre pas dans le sol
-            callback.accept(passenger, this.getX(), this.getY() + 0.5, this.getZ());
+            callback.accept(passenger, this.getX(), this.getY() + 0.2, this.getZ());
         }
     }
 
