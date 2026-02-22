@@ -9,7 +9,9 @@ import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityDimensions;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.Pose;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -21,6 +23,8 @@ public class InteractionPartEntity extends Entity {
     private VehicleEntity parentVehicle;
     private String slotId;
     private Vec3 offset = Vec3.ZERO;
+    private float customWidth = 0.5f;
+    private float customHeight = 0.5f;
 
     // Constructeur obligatoire pour le registre NeoForge
     public InteractionPartEntity(EntityType<?> type, Level level) {
@@ -34,9 +38,16 @@ public class InteractionPartEntity extends Entity {
         this.parentVehicle = parentVehicle;
         this.slotId = slotId;
         this.offset = offset;
-        double halfW = width / 2.0;
-        double halfH = height / 2.0;
-        this.setBoundingBox(new AABB(-halfW, -halfH, -halfW, halfW, halfH, halfW));
+        this.customWidth = width;
+        this.customHeight = height;
+        // On force Minecraft à recalculer la boîte de collision de l'entité avec NOS tailles !
+        this.refreshDimensions();
+    }
+
+    @Override
+    public EntityDimensions getDimensions(Pose pose) {
+        // "fixed" empêche Minecraft de redimensionner la hitbox tout seul
+        return EntityDimensions.fixed(this.customWidth, this.customHeight);
     }
 
     @Override

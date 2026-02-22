@@ -13,7 +13,13 @@ public class VehicleChassisRenderer extends GeoEntityRenderer<VehicleEntity> {
 
     public VehicleChassisRenderer(EntityRendererProvider.Context renderManager) {
         super(renderManager, new VehicleChassisModel());
+
+        // Le calque qui dessine les modèles 3D des pièces
         this.addRenderLayer(new fr.frankulinn.vehiclemod.client.renderer.layer.VehiclePartsLayer(this));
+
+        // --- NOUVEAU : Le calque qui dessine les hologrammes ---
+        this.addRenderLayer(new fr.frankulinn.vehiclemod.client.renderer.layer.VehicleHitboxLayer(this));
+
         this.shadowRadius = 0.5f;
     }
 
