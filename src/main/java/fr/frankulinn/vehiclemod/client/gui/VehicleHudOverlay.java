@@ -1,6 +1,6 @@
 package fr.frankulinn.vehiclemod.client.gui;
 
-import fr.frankulinn.vehiclemod.entity.VehicleEntity;
+import fr.frankulinn.vehiclemod.entity.BaseVehicleEntity;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.LayeredDraw;
@@ -17,7 +17,7 @@ public class VehicleHudOverlay implements LayeredDraw.Layer {
         Player player = minecraft.player;
 
         // On vérifie si le joueur existe et s'il est au volant de NOTRE véhicule
-        if (player != null && player.getVehicle() instanceof VehicleEntity vehicle) {
+        if (player != null && player.getVehicle() instanceof BaseVehicleEntity vehicle) {
 
             // --- 1. CALCULS ---
             // La vitesse (Blocks par tick -> km/h)
@@ -25,8 +25,8 @@ public class VehicleHudOverlay implements LayeredDraw.Layer {
             int speedKmh = (int) Math.round(speedBpt * 72.0);
 
             // L'essence (Pourcentage)
-            float currentFuel = vehicle.getEntityData().get(VehicleEntity.FUEL_LEVEL);
-            int fuelPercentage = (int) ((currentFuel / VehicleEntity.MAX_FUEL) * 100);
+            float currentFuel = vehicle.getEntityData().get(BaseVehicleEntity.FUEL_LEVEL);
+            int fuelPercentage = (int) ((currentFuel / BaseVehicleEntity.MAX_FUEL) * 100);
 
             // --- 2. POSITION SUR L'ÉCRAN ---
             // On le met en bas à droite de l'écran

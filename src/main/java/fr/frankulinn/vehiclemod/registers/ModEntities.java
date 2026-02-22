@@ -1,8 +1,9 @@
 package fr.frankulinn.vehiclemod.registers;
 
 import fr.frankulinn.vehiclemod.Vehiclemod;
-import fr.frankulinn.vehiclemod.entity.VehicleEntity;
 import fr.frankulinn.vehiclemod.entity.parts.InteractionPartEntity;
+import fr.frankulinn.vehiclemod.entity.BaseVehicleEntity;
+import fr.frankulinn.vehiclemod.entity.vehicles.KartEntity;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
@@ -17,8 +18,8 @@ public class ModEntities {
             DeferredRegister.create(Registries.ENTITY_TYPE, Vehiclemod.MODID);
 
     // Enregistrement de notre châssis
-    public static final Supplier<EntityType<VehicleEntity>> VEHICLE_CHASSIS = ENTITY_TYPES.register("vehicle_chassis",
-            () -> EntityType.Builder.<VehicleEntity>of(VehicleEntity::new, MobCategory.MISC)
+    public static final Supplier<EntityType<BaseVehicleEntity>> KART_VEHICLE = ENTITY_TYPES.register("vehicle_chassis",
+            () -> EntityType.Builder.<BaseVehicleEntity>of(KartEntity::new, MobCategory.MISC)
                     .sized(2.0F, 1.5F) // Taille de la hitbox (Largeur, Hauteur) en blocs
                     .clientTrackingRange(10) // Distance de rendu
                     .build("vehicle_chassis")

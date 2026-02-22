@@ -28,18 +28,18 @@ import net.minecraft.network.syncher.SynchedEntityData;
 import javax.annotation.Nullable;
 import java.util.*;
 
-public class VehicleEntity extends Entity implements GeoEntity {
+public abstract class BaseVehicleEntity extends Entity implements GeoEntity {
 
     // Ces variables sont synchronisées automatiquement du Serveur vers le Client
-    public static final EntityDataAccessor<Boolean> HAS_ENGINE = SynchedEntityData.defineId(VehicleEntity.class, EntityDataSerializers.BOOLEAN);
-    private static final EntityDataAccessor<Boolean> ENGINE_SECURED = SynchedEntityData.defineId(VehicleEntity.class, EntityDataSerializers.BOOLEAN);
+    public static final EntityDataAccessor<Boolean> HAS_ENGINE = SynchedEntityData.defineId(BaseVehicleEntity.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<Boolean> ENGINE_SECURED = SynchedEntityData.defineId(BaseVehicleEntity.class, EntityDataSerializers.BOOLEAN);
     // Avec HAS_ENGINE, WHEEL_FL, etc...
-    public static final EntityDataAccessor<Integer> SECURED_WHEELS = SynchedEntityData.defineId(VehicleEntity.class, EntityDataSerializers.INT);
-    public static final EntityDataAccessor<String> WHEEL_FL = SynchedEntityData.defineId(VehicleEntity.class, EntityDataSerializers.STRING);
-    public static final EntityDataAccessor<String> WHEEL_FR = SynchedEntityData.defineId(VehicleEntity.class, EntityDataSerializers.STRING);
-    public static final EntityDataAccessor<String> WHEEL_BL = SynchedEntityData.defineId(VehicleEntity.class, EntityDataSerializers.STRING);
-    public static final EntityDataAccessor<String> WHEEL_BR = SynchedEntityData.defineId(VehicleEntity.class, EntityDataSerializers.STRING);
-    public static final EntityDataAccessor<Float> FUEL_LEVEL = SynchedEntityData.defineId(VehicleEntity.class, EntityDataSerializers.FLOAT);
+    public static final EntityDataAccessor<Integer> SECURED_WHEELS = SynchedEntityData.defineId(BaseVehicleEntity.class, EntityDataSerializers.INT);
+    public static final EntityDataAccessor<String> WHEEL_FL = SynchedEntityData.defineId(BaseVehicleEntity.class, EntityDataSerializers.STRING);
+    public static final EntityDataAccessor<String> WHEEL_FR = SynchedEntityData.defineId(BaseVehicleEntity.class, EntityDataSerializers.STRING);
+    public static final EntityDataAccessor<String> WHEEL_BL = SynchedEntityData.defineId(BaseVehicleEntity.class, EntityDataSerializers.STRING);
+    public static final EntityDataAccessor<String> WHEEL_BR = SynchedEntityData.defineId(BaseVehicleEntity.class, EntityDataSerializers.STRING);
+    public static final EntityDataAccessor<Float> FUEL_LEVEL = SynchedEntityData.defineId(BaseVehicleEntity.class, EntityDataSerializers.FLOAT);
     public static final float MAX_FUEL = 100.0f; // La capacité maximum du réservoir
 
     private final Map<String, PartSlot> partSlots = new HashMap<>();
@@ -51,25 +51,15 @@ public class VehicleEntity extends Entity implements GeoEntity {
     public float prevSteeringAngle = 0.0f;
 
     // Constructeur obligatoire pour que Minecraft puisse spawner l'entité
-    public VehicleEntity(EntityType<?> entityType, Level level) {
+    public BaseVehicleEntity(EntityType<?> entityType, Level level) {
         super(entityType, level);
         initSlots();
     }
 
-    private void initSlots() {
-        // ID du slot | Position (X, Y, Z) | Largeur de la hitbox | Hauteur de la hitbox
+    protected abstract void initSlots();
 
-        // Le Moteur
-        // On passe le Z de 1.0 à -1.0 (ou -1.5 si le moteur est encore plus en arrière !)
-        this.partSlots.put("engine_bay", new fr.frankulinn.vehiclemod.entity.parts.PartSlot("engine_bay", new Vec3(0, 0.5, -1.0), 0.8f, 0.8f, new EngineBayInteraction()));
-        // Les 4 Roues
-        this.partSlots.put("wheel_front_left", new PartSlot("wheel_front_left", new Vec3(1.0, 0.2, 1.0), 0.5f, 0.5f, new WheelInteraction()));
-        this.partSlots.put("wheel_front_right", new PartSlot("wheel_front_right", new Vec3(-1.0, 0.2, 1.0), 0.5f, 0.5f, new WheelInteraction()));
-        this.partSlots.put("wheel_back_left", new PartSlot("wheel_back_left", new Vec3(1.0, 0.2, -1.0), 0.5f, 0.5f, new WheelInteraction()));
-        this.partSlots.put("wheel_back_right", new PartSlot("wheel_back_right", new Vec3(-1.0, 0.2, -1.0), 0.5f, 0.5f, new WheelInteraction()));
-        this.partSlots.put("fuel_cap", new fr.frankulinn.vehiclemod.entity.parts.PartSlot("fuel_cap", new Vec3(0.8, 0.5, -1.0), 0.4f, 0.4f, new FuelCapInteraction()));
-
-
+    protected void addSlot(String id, PartSlot slot) {
+        this.partSlots.put(id, slot);
     }
 
     @Override

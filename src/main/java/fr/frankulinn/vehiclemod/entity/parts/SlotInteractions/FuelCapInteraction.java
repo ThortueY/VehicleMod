@@ -1,6 +1,6 @@
 package fr.frankulinn.vehiclemod.entity.parts.SlotInteractions;
 
-import fr.frankulinn.vehiclemod.entity.VehicleEntity;
+import fr.frankulinn.vehiclemod.entity.BaseVehicleEntity;
 import fr.frankulinn.vehiclemod.entity.parts.PartSlot;
 import fr.frankulinn.vehiclemod.entity.parts.SlotInteraction;
 import fr.frankulinn.vehiclemod.item.JerricanItem;
@@ -11,15 +11,16 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 
 public class FuelCapInteraction implements SlotInteraction {
+
     @Override
-    public InteractionResult onInteract(Player player, InteractionHand hand, PartSlot slot, VehicleEntity vehicle) {
+    public InteractionResult onInteract(Player player, InteractionHand hand, PartSlot slot, BaseVehicleEntity vehicle) {
         ItemStack stackInHand = player.getItemInHand(hand);
 
-        if (stackInHand.getItem() instanceof fr.frankulinn.vehiclemod.item.JerricanItem) {
-            float currentFuel = vehicle.getEntityData().get(VehicleEntity.FUEL_LEVEL);
+        if (stackInHand.getItem() instanceof JerricanItem) {
+            float currentFuel = vehicle.getEntityData().get(BaseVehicleEntity.FUEL_LEVEL);
 
-            if (currentFuel < VehicleEntity.MAX_FUEL) {
-                vehicle.getEntityData().set(VehicleEntity.FUEL_LEVEL, VehicleEntity.MAX_FUEL);
+            if (currentFuel < BaseVehicleEntity.MAX_FUEL) {
+                vehicle.getEntityData().set(BaseVehicleEntity.FUEL_LEVEL, BaseVehicleEntity.MAX_FUEL);
                 if (!player.isCreative()) stackInHand.shrink(1);
                 player.displayClientMessage(net.minecraft.network.chat.Component.literal("§aPlein effectué ! ⛽ (100%)"), true);
             } else {

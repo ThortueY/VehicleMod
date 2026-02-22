@@ -4,7 +4,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import fr.frankulinn.vehiclemod.client.model.EngineModel;
 import fr.frankulinn.vehiclemod.client.model.WheelModel;
-import fr.frankulinn.vehiclemod.entity.VehicleEntity;
+import fr.frankulinn.vehiclemod.entity.BaseVehicleEntity;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.world.phys.Vec3;
@@ -12,23 +12,23 @@ import software.bernie.geckolib.cache.object.BakedGeoModel;
 import software.bernie.geckolib.renderer.GeoEntityRenderer;
 import software.bernie.geckolib.renderer.layer.GeoRenderLayer;
 
-public class VehiclePartsLayer extends GeoRenderLayer<VehicleEntity> {
+public class VehiclePartsLayer extends GeoRenderLayer<BaseVehicleEntity> {
 
     // On instancie le modèle du moteur pour pouvoir le dessiner
     private final EngineModel engineModel = new EngineModel();
     private final WheelModel wheelModel = new WheelModel();
 
-    public VehiclePartsLayer(GeoEntityRenderer<VehicleEntity> entityRendererIn) {
+    public VehiclePartsLayer(GeoEntityRenderer<BaseVehicleEntity> entityRendererIn) {
         super(entityRendererIn);
     }
 
     @Override
-    public void render(PoseStack poseStack, VehicleEntity animatable, BakedGeoModel bakedModel, RenderType renderType,
+    public void render(PoseStack poseStack, BaseVehicleEntity animatable, BakedGeoModel bakedModel, RenderType renderType,
             MultiBufferSource bufferSource, VertexConsumer buffer, float partialTick, int packedLight,
             int packedOverlay) {
 
         // --- 1. RENDU DU MOTEUR ---
-        if (animatable.getEntityData().get(VehicleEntity.HAS_ENGINE)) {
+        if (animatable.getEntityData().get(BaseVehicleEntity.HAS_ENGINE)) {
 
             fr.frankulinn.vehiclemod.entity.parts.PartSlot engineSlot = animatable.getSlot("engine_bay");
 
@@ -55,16 +55,16 @@ public class VehiclePartsLayer extends GeoRenderLayer<VehicleEntity> {
         // --- 2. RENDU DES ROUES ---
         // Elles sont maintenant indépendantes du moteur !
         renderWheel(poseStack, animatable, bufferSource, partialTick, packedLight, packedOverlay, "wheel_front_left",
-                VehicleEntity.WHEEL_FL);
+                BaseVehicleEntity.WHEEL_FL);
         renderWheel(poseStack, animatable, bufferSource, partialTick, packedLight, packedOverlay, "wheel_front_right",
-                VehicleEntity.WHEEL_FR);
+                BaseVehicleEntity.WHEEL_FR);
         renderWheel(poseStack, animatable, bufferSource, partialTick, packedLight, packedOverlay, "wheel_back_left",
-                VehicleEntity.WHEEL_BL);
+                BaseVehicleEntity.WHEEL_BL);
         renderWheel(poseStack, animatable, bufferSource, partialTick, packedLight, packedOverlay, "wheel_back_right",
-                VehicleEntity.WHEEL_BR);
+                BaseVehicleEntity.WHEEL_BR);
     }
 
-    private void renderWheel(PoseStack poseStack, VehicleEntity animatable, MultiBufferSource bufferSource,
+    private void renderWheel(PoseStack poseStack, BaseVehicleEntity animatable, MultiBufferSource bufferSource,
             float partialTick, int packedLight, int packedOverlay, String slotId,
             net.minecraft.network.syncher.EntityDataAccessor<String> dataAccessor) {
 

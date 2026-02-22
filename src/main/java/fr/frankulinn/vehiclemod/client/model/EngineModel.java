@@ -1,23 +1,23 @@
 package fr.frankulinn.vehiclemod.client.model;
 
-import fr.frankulinn.vehiclemod.entity.VehicleEntity;
+import fr.frankulinn.vehiclemod.entity.BaseVehicleEntity;
 import net.minecraft.resources.ResourceLocation;
 import software.bernie.geckolib.model.GeoModel;
 
-public class EngineModel extends GeoModel<VehicleEntity> {
+public class EngineModel extends GeoModel<BaseVehicleEntity> {
     @Override
-    public ResourceLocation getModelResource(VehicleEntity object) {
+    public ResourceLocation getModelResource(BaseVehicleEntity object) {
         // Remplace par le nom de ton fichier json
         return ResourceLocation.fromNamespaceAndPath("vehiclemod", "geo/engine.geo.json");
     }
 
     @Override
-    public ResourceLocation getTextureResource(VehicleEntity object) {
+    public ResourceLocation getTextureResource(BaseVehicleEntity object) {
         return ResourceLocation.fromNamespaceAndPath("vehiclemod", "textures/entity/engine.png");
     }
 
     @Override
-    public ResourceLocation getAnimationResource(VehicleEntity animatable) {
+    public ResourceLocation getAnimationResource(BaseVehicleEntity animatable) {
         return null; // Pas d'animation pour l'instant
     }
 }

@@ -1,6 +1,6 @@
 package fr.frankulinn.vehiclemod.entity.parts;
 
-import fr.frankulinn.vehiclemod.entity.VehicleEntity;
+import fr.frankulinn.vehiclemod.entity.BaseVehicleEntity;
 import fr.frankulinn.vehiclemod.item.EngineItem;
 import fr.frankulinn.vehiclemod.item.WheelItem;
 import fr.frankulinn.vehiclemod.item.WrenchItem;
@@ -20,7 +20,7 @@ import net.minecraft.world.phys.Vec3;
 
 public class InteractionPartEntity extends Entity {
 
-    private VehicleEntity parentVehicle;
+    private BaseVehicleEntity parentVehicle;
     private String slotId;
     private Vec3 offset = Vec3.ZERO;
     private float customWidth = 0.5f;
@@ -34,7 +34,7 @@ public class InteractionPartEntity extends Entity {
 
     // Notre méthode pour lier la hitbox à la voiture juste après l'avoir fait
     // spawner
-    public void init(VehicleEntity parentVehicle, String slotId, Vec3 offset, float width, float height) {
+    public void init(BaseVehicleEntity parentVehicle, String slotId, Vec3 offset, float width, float height) {
         this.parentVehicle = parentVehicle;
         this.slotId = slotId;
         this.offset = offset;

@@ -2,7 +2,7 @@ package fr.frankulinn.vehiclemod.client.renderer.layer;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import fr.frankulinn.vehiclemod.entity.VehicleEntity;
+import fr.frankulinn.vehiclemod.entity.BaseVehicleEntity;
 import fr.frankulinn.vehiclemod.entity.parts.PartSlot;
 import fr.frankulinn.vehiclemod.item.EngineItem;
 import fr.frankulinn.vehiclemod.item.JerricanItem;
@@ -21,14 +21,14 @@ import software.bernie.geckolib.cache.object.BakedGeoModel;
 import software.bernie.geckolib.renderer.GeoEntityRenderer;
 import software.bernie.geckolib.renderer.layer.GeoRenderLayer;
 
-public class VehicleHitboxLayer extends GeoRenderLayer<VehicleEntity> {
+public class VehicleHitboxLayer extends GeoRenderLayer<BaseVehicleEntity> {
 
-    public VehicleHitboxLayer(GeoEntityRenderer<VehicleEntity> entityRendererIn) {
+    public VehicleHitboxLayer(GeoEntityRenderer<BaseVehicleEntity> entityRendererIn) {
         super(entityRendererIn);
     }
 
     @Override
-    public void render(PoseStack poseStack, VehicleEntity animatable, BakedGeoModel bakedModel, RenderType renderType, MultiBufferSource bufferSource, VertexConsumer buffer, float partialTick, int packedLight, int packedOverlay) {
+    public void render(PoseStack poseStack, BaseVehicleEntity animatable, BakedGeoModel bakedModel, RenderType renderType, MultiBufferSource bufferSource, VertexConsumer buffer, float partialTick, int packedLight, int packedOverlay) {
 
         Player player = Minecraft.getInstance().player;
         if (player == null) return;

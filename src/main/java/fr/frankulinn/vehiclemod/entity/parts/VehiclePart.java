@@ -1,6 +1,6 @@
 package fr.frankulinn.vehiclemod.entity.parts;
 
-import fr.frankulinn.vehiclemod.entity.VehicleEntity;
+import fr.frankulinn.vehiclemod.entity.BaseVehicleEntity;
 
 public abstract class VehiclePart {
 
@@ -13,7 +13,7 @@ public abstract class VehiclePart {
     }
 
     // Cette méthode sera appelée à chaque tick du véhicule (ex: pour consommer de l'essence ou user le pneu)
-    public void tickPart(VehicleEntity vehicle) {
+    public void tickPart(BaseVehicleEntity vehicle) {
         // Logique par défaut vide
     }
 

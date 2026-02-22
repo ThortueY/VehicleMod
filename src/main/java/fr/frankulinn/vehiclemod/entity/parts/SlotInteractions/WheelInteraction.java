@@ -1,6 +1,6 @@
 package fr.frankulinn.vehiclemod.entity.parts.SlotInteractions;
 
-import fr.frankulinn.vehiclemod.entity.VehicleEntity;
+import fr.frankulinn.vehiclemod.entity.BaseVehicleEntity;
 import fr.frankulinn.vehiclemod.entity.parts.PartSlot;
 import fr.frankulinn.vehiclemod.entity.parts.SlotInteraction;
 import fr.frankulinn.vehiclemod.entity.parts.WheelPart;
@@ -14,7 +14,7 @@ import net.minecraft.world.item.ItemStack;
 
 public class WheelInteraction implements SlotInteraction {
     @Override
-    public InteractionResult onInteract(Player player, InteractionHand hand, PartSlot slot, VehicleEntity vehicle) {
+    public InteractionResult onInteract(Player player, InteractionHand hand, PartSlot slot, BaseVehicleEntity vehicle) {
         ItemStack stackInHand = player.getItemInHand(hand);
 
         // 1. SI L'EMPLACEMENT EST VIDE
