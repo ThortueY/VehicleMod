@@ -30,21 +30,27 @@ import java.util.*;
 
 public abstract class BaseVehicleEntity extends Entity implements GeoEntity {
 
-    // Ces variables sont synchronisées automatiquement du Serveur vers le Client
+    //Variables pour vérifier si un moteur est monté et vissé
     public static final EntityDataAccessor<Boolean> HAS_ENGINE = SynchedEntityData.defineId(BaseVehicleEntity.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Boolean> ENGINE_SECURED = SynchedEntityData.defineId(BaseVehicleEntity.class, EntityDataSerializers.BOOLEAN);
-    // Avec HAS_ENGINE, WHEEL_FL, etc...
+
+    //Variables pour vérifier si les roues sont montées et vissées
     public static final EntityDataAccessor<Integer> SECURED_WHEELS = SynchedEntityData.defineId(BaseVehicleEntity.class, EntityDataSerializers.INT);
     public static final EntityDataAccessor<String> WHEEL_FL = SynchedEntityData.defineId(BaseVehicleEntity.class, EntityDataSerializers.STRING);
     public static final EntityDataAccessor<String> WHEEL_FR = SynchedEntityData.defineId(BaseVehicleEntity.class, EntityDataSerializers.STRING);
     public static final EntityDataAccessor<String> WHEEL_BL = SynchedEntityData.defineId(BaseVehicleEntity.class, EntityDataSerializers.STRING);
     public static final EntityDataAccessor<String> WHEEL_BR = SynchedEntityData.defineId(BaseVehicleEntity.class, EntityDataSerializers.STRING);
+
+    //Variables pour le réservoir
     public static final EntityDataAccessor<Float> FUEL_LEVEL = SynchedEntityData.defineId(BaseVehicleEntity.class, EntityDataSerializers.FLOAT);
     public static final float MAX_FUEL = 100.0f; // La capacité maximum du réservoir
 
+    //Slots pour les pièces de véhicule
     private final Map<String, PartSlot> partSlots = new HashMap<>();
     private final List<InteractionPartEntity> hitboxes = new ArrayList<>();
     private boolean hitboxesSpawned = false;
+
+    //Variables pour la physique du véhicule
     public float wheelRotation = 0.0f;
     public float prevWheelRotation = 0.0f;
     public float steeringAngle = 0.0f;
@@ -56,111 +62,12 @@ public abstract class BaseVehicleEntity extends Entity implements GeoEntity {
         initSlots();
     }
 
+    //Constructeur permettant de créer les slots
     protected abstract void initSlots();
 
+    //Méthode pour ajouter un slot
     protected void addSlot(String id, PartSlot slot) {
         this.partSlots.put(id, slot);
-    }
-
-    @Override
-    public float maxUpStep() {
-        return 1.0f;
-    }
-
-    private void spawnHitboxes() {
-        // On boucle sur tous les slots enregistrés et on génère leur hitbox automatiquement !
-        for (fr.frankulinn.vehiclemod.entity.parts.PartSlot slot : this.partSlots.values()) {
-            createHitbox(slot.getId(), slot.getOffset(), slot.getHitboxWidth(), slot.getHitboxHeight());
-        }
-    }
-    private void createHitbox(String slotId, Vec3 offset, float width, float height) {
-        InteractionPartEntity hitbox = ModEntities.INTERACTION_PART.get().create(this.level());
-        if (hitbox != null) {
-            hitbox.init(this, slotId, offset, width, height);
-            hitbox.setPos(this.getX(), this.getY(), this.getZ());
-            this.level().addFreshEntity(hitbox);
-            this.hitboxes.add(hitbox);
-        }
-    }
-
-
-
-    // C'est ici qu'on déclarera plus tard nos variables synchronisées (ex: la
-    // couleur, isLifted, etc.)
-    // En 1.21.1, on utilise le builder.
-    @Override
-    protected void defineSynchedData(SynchedEntityData.Builder builder) {
-        // Vide pour l'instant
-        builder.define(HAS_ENGINE, false);
-        builder.define(ENGINE_SECURED, false);
-        builder.define(SECURED_WHEELS, 0); // 0 roue vissée au départ
-        builder.define(WHEEL_FL, "none");
-        builder.define(WHEEL_FR, "none");
-        builder.define(WHEEL_BL, "none");
-        builder.define(WHEEL_BR, "none");
-        builder.define(FUEL_LEVEL, 0.0f);
-    }
-
-    public void updatePartsSync() {
-        // 1. Synchro du Moteur (Présence ET Fixation)
-        fr.frankulinn.vehiclemod.entity.parts.PartSlot engineSlot = this.getSlot("engine_bay");
-        this.entityData.set(HAS_ENGINE, engineSlot != null && engineSlot.getPart() != null);
-        this.entityData.set(ENGINE_SECURED, engineSlot != null && engineSlot.isSecured());
-
-        // 🔥 NOUVEAU : Synchro des types de roues pour l'affichage visuel
-        this.entityData.set(WHEEL_FL, getWheelTypeAt("wheel_front_left"));
-        this.entityData.set(WHEEL_FR, getWheelTypeAt("wheel_front_right"));
-        this.entityData.set(WHEEL_BL, getWheelTypeAt("wheel_back_left"));
-        this.entityData.set(WHEEL_BR, getWheelTypeAt("wheel_back_right"));
-
-        // 2. Compte des roues pour la vitesse
-        int count = 0;
-        if (this.getSlot("wheel_front_left") != null && this.getSlot("wheel_front_left").isSecured()) count++;
-        if (this.getSlot("wheel_front_right") != null && this.getSlot("wheel_front_right").isSecured()) count++;
-        if (this.getSlot("wheel_back_left") != null && this.getSlot("wheel_back_left").isSecured()) count++;
-        if (this.getSlot("wheel_back_right") != null && this.getSlot("wheel_back_right").isSecured()) count++;
-
-        this.entityData.set(SECURED_WHEELS, count);
-    }
-
-    private String getWheelTypeAt(String slotId) {
-        PartSlot slot = this.getSlot(slotId);
-        if (slot != null && slot.getPart() instanceof fr.frankulinn.vehiclemod.entity.parts.WheelPart wheel) {
-            return wheel.getWheelType();
-        }
-        return "none";
-    }
-
-    private boolean isWheelSecured(String slotId) {
-        PartSlot slot = this.getSlot(slotId);
-        return slot != null && slot.isSecured() && slot.getPart() instanceof fr.frankulinn.vehiclemod.entity.parts.WheelPart;
-    }
-
-    // Empêche les autres entités (et ses propres composants) de pousser la voiture
-    @Override
-    public boolean isPushable() {
-        return false;
-    }
-
-    // Définit avec qui la voiture a le droit d'entrer en collision physique
-    @Override
-    public boolean canCollideWith(Entity entity) {
-        // On ignore totalement la collision si l'entité touchée est un de nos
-        // composants
-        if (entity instanceof fr.frankulinn.vehiclemod.entity.parts.InteractionPartEntity) {
-            return false;
-        }
-        return super.canCollideWith(entity);
-    }
-
-    // === FIX ROLLBACK: On ignore les corrections de position du tracker serveur
-    // ===
-    // Le tracker d'entité envoie des positions STALE au client via lerpTo().
-    // Comme on calcule la physique identiquement côté client ET serveur,
-    // le client a déjà la bonne position → on ignore ces corrections.
-    @Override
-    public void lerpTo(double x, double y, double z, float yRot, float xRot, int steps) {
-        // Ne PAS appeler super.lerpTo() — c'est lui qui causait le rollback
     }
 
     @Override
@@ -236,8 +143,8 @@ public abstract class BaseVehicleEntity extends Entity implements GeoEntity {
                 // --- NOUVEAU : On récupère la consommation dynamique ---
                 float consumptionRate = 0.05f; // Valeur de secours par défaut
 
-                fr.frankulinn.vehiclemod.entity.parts.PartSlot engineSlot = this.getSlot("engine_bay");
-                if (engineSlot != null && engineSlot.getPart() instanceof fr.frankulinn.vehiclemod.entity.parts.EnginePart enginePart) {
+                PartSlot engineSlot = this.getSlot("engine_bay");
+                if (engineSlot != null && engineSlot.getPart() instanceof EnginePart enginePart) {
                     consumptionRate = enginePart.getFuelConsumption();
                 }
                 // -------------------------------------------------------
@@ -326,6 +233,102 @@ public abstract class BaseVehicleEntity extends Entity implements GeoEntity {
 
         // 3. Application finale du mouvement
         this.move(net.minecraft.world.entity.MoverType.SELF, this.getDeltaMovement());
+    }
+
+
+
+    //Méthode pour générer les hitboxes
+    private void spawnHitboxes() {
+        // On boucle sur tous les slots enregistrés et on génère leur hitbox automatiquement !
+        for (PartSlot slot : this.partSlots.values()) {
+            createHitbox(slot.getId(), slot.getOffset(), slot.getHitboxWidth(), slot.getHitboxHeight());
+        }
+    }
+
+    //Méthode pour créer une hitbox
+    private void createHitbox(String slotId, Vec3 offset, float width, float height) {
+        InteractionPartEntity hitbox = ModEntities.INTERACTION_PART.get().create(this.level());
+        if (hitbox != null) {
+            hitbox.init(this, slotId, offset, width, height);
+            hitbox.setPos(this.getX(), this.getY(), this.getZ());
+            this.level().addFreshEntity(hitbox);
+            this.hitboxes.add(hitbox);
+        }
+    }
+
+
+
+    //Déclaration des variables synchronisées entre le client et le serveur
+    @Override
+    protected void defineSynchedData(SynchedEntityData.Builder builder) {
+        // Vide pour l'instant
+        builder.define(HAS_ENGINE, false);
+        builder.define(ENGINE_SECURED, false);
+        builder.define(SECURED_WHEELS, 0); // 0 roue vissée au départ
+        builder.define(WHEEL_FL, "none");
+        builder.define(WHEEL_FR, "none");
+        builder.define(WHEEL_BL, "none");
+        builder.define(WHEEL_BR, "none");
+        builder.define(FUEL_LEVEL, 0.0f);
+    }
+
+    //Mise à jour des variables dans l'entité
+    public void updatePartsSync() {
+        // 1. Synchro du Moteur (Présence ET Fixation)
+        fr.frankulinn.vehiclemod.entity.parts.PartSlot engineSlot = this.getSlot("engine_bay");
+        this.entityData.set(HAS_ENGINE, engineSlot != null && engineSlot.getPart() != null);
+        this.entityData.set(ENGINE_SECURED, engineSlot != null && engineSlot.isSecured());
+
+        // 🔥 NOUVEAU : Synchro des types de roues pour l'affichage visuel
+        this.entityData.set(WHEEL_FL, getWheelTypeAt("wheel_front_left"));
+        this.entityData.set(WHEEL_FR, getWheelTypeAt("wheel_front_right"));
+        this.entityData.set(WHEEL_BL, getWheelTypeAt("wheel_back_left"));
+        this.entityData.set(WHEEL_BR, getWheelTypeAt("wheel_back_right"));
+
+        // 2. Compte des roues pour la vitesse
+        int count = 0;
+        if (this.getSlot("wheel_front_left") != null && this.getSlot("wheel_front_left").isSecured()) count++;
+        if (this.getSlot("wheel_front_right") != null && this.getSlot("wheel_front_right").isSecured()) count++;
+        if (this.getSlot("wheel_back_left") != null && this.getSlot("wheel_back_left").isSecured()) count++;
+        if (this.getSlot("wheel_back_right") != null && this.getSlot("wheel_back_right").isSecured()) count++;
+
+        this.entityData.set(SECURED_WHEELS, count);
+    }
+
+    private String getWheelTypeAt(String slotId) {
+        PartSlot slot = this.getSlot(slotId);
+        if (slot != null && slot.getPart() instanceof fr.frankulinn.vehiclemod.entity.parts.WheelPart wheel) {
+            return wheel.getWheelType();
+        }
+        return "none";
+    }
+
+    private boolean isWheelSecured(String slotId) {
+        PartSlot slot = this.getSlot(slotId);
+        return slot != null && slot.isSecured() && slot.getPart() instanceof fr.frankulinn.vehiclemod.entity.parts.WheelPart;
+    }
+
+    // Empêche les autres entités (et ses propres composants) de pousser la voiture
+    @Override
+    public boolean isPushable() {
+        return false;
+    }
+
+    // Définit avec qui la voiture a le droit d'entrer en collision physique
+    @Override
+    public boolean canCollideWith(Entity entity) {
+        // On ignore totalement la collision si l'entité touchée est un de nos
+        // composants
+        if (entity instanceof InteractionPartEntity) {
+            return false;
+        }
+        return super.canCollideWith(entity);
+    }
+
+
+    @Override
+    public void lerpTo(double x, double y, double z, float yRot, float xRot, int steps) {
+        // Ne PAS appeler super.lerpTo() — c'est lui qui causait le rollback
     }
 
     // Sauvegarde des données quand on quitte le monde
@@ -431,6 +434,11 @@ public abstract class BaseVehicleEntity extends Entity implements GeoEntity {
 
     public Collection<PartSlot> getPartSlots() {
         return this.partSlots.values();
+    }
+
+    @Override
+    public float maxUpStep() {
+        return 1.0f;
     }
 
 
