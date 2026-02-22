@@ -42,6 +42,23 @@ public class VehicleChassisModel extends GeoModel<VehicleEntity> {
         updateWheelVisibility("wheel_fr", animatable.getEntityData().get(VehicleEntity.WHEEL_FR));
         updateWheelVisibility("wheel_bl", animatable.getEntityData().get(VehicleEntity.WHEEL_BL));
         updateWheelVisibility("wheel_br", animatable.getEntityData().get(VehicleEntity.WHEEL_BR));
+
+        GeoBone steeringWheel = this.getAnimationProcessor().getBone("steering_wheel");
+
+        if (steeringWheel != null) {
+            // 2. GeckoLib a besoin de Radians (Math.PI) et non de Degrés pour tourner les os
+            float steeringRadians = animatable.steeringAngle * ((float) Math.PI / 180F);
+
+            // 3. On applique la rotation !
+            // ⚠️ ATTENTION : L'axe (X, Y ou Z) dépend de comment tu as incliné ton volant dans Blockbench.
+            // En général, un volant face au joueur tourne sur l'axe Z (le roulis).
+            steeringWheel.setRotZ(steeringRadians);
+
+            // Si le volant tourne comme une hélice d'hélicoptère (axe Y) ou fait des saltos (axe X),
+            // mets setRotZ en commentaire et essaie :
+            // steeringWheel.setRotX(steeringRadians);
+            // steeringWheel.setRotY(steeringRadians);
+        }
     }
 
     // Méthode utilitaire pour gérer toutes les roues facilement
