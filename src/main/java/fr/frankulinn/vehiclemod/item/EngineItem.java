@@ -22,8 +22,8 @@ public class EngineItem extends Item {
     }
 
     public EnginePart createPart() {
-        String modelId = BuiltInRegistries.ITEM.getKey(this).getPath();
-        return new EnginePart(this.hp, this.weight, this.maxSpeed, this.fuelConso);
+        String id = BuiltInRegistries.ITEM.getKey(this).getPath();
+        return new EnginePart(this.hp, this.weight, this.maxSpeed, this.fuelConso, id);
     }
 
 

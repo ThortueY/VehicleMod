@@ -3,9 +3,6 @@ package fr.frankulinn.vehiclemod.entity;
 import fr.frankulinn.vehiclemod.entity.parts.EnginePart;
 import fr.frankulinn.vehiclemod.entity.parts.InteractionPartEntity;
 import fr.frankulinn.vehiclemod.entity.parts.PartSlot;
-import fr.frankulinn.vehiclemod.entity.parts.SlotInteractions.EngineBayInteraction;
-import fr.frankulinn.vehiclemod.entity.parts.SlotInteractions.FuelCapInteraction;
-import fr.frankulinn.vehiclemod.entity.parts.SlotInteractions.WheelInteraction;
 import fr.frankulinn.vehiclemod.registers.ModEntities;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.syncher.SynchedEntityData;
@@ -23,7 +20,6 @@ import software.bernie.geckolib.animation.AnimatableManager;
 import software.bernie.geckolib.util.GeckoLibUtil;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
-import net.minecraft.network.syncher.SynchedEntityData;
 
 import javax.annotation.Nullable;
 import java.util.*;
@@ -33,6 +29,7 @@ public abstract class BaseVehicleEntity extends Entity implements GeoEntity {
     //Variables pour vérifier si un moteur est monté et vissé
     public static final EntityDataAccessor<Boolean> HAS_ENGINE = SynchedEntityData.defineId(BaseVehicleEntity.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Boolean> ENGINE_SECURED = SynchedEntityData.defineId(BaseVehicleEntity.class, EntityDataSerializers.BOOLEAN);
+    public static final EntityDataAccessor<String> ENGINE = SynchedEntityData.defineId(BaseVehicleEntity.class, EntityDataSerializers.STRING);
 
     //Variables pour vérifier si les roues sont montées et vissées
     public static final EntityDataAccessor<Integer> SECURED_WHEELS = SynchedEntityData.defineId(BaseVehicleEntity.class, EntityDataSerializers.INT);
@@ -270,15 +267,16 @@ public abstract class BaseVehicleEntity extends Entity implements GeoEntity {
         builder.define(WHEEL_BL, "none");
         builder.define(WHEEL_BR, "none");
         builder.define(FUEL_LEVEL, 0.0f);
+        builder.define(ENGINE, "none");
     }
 
     //Mise à jour des variables dans l'entité
     public void updatePartsSync() {
         // 1. Synchro du Moteur (Présence ET Fixation)
-        fr.frankulinn.vehiclemod.entity.parts.PartSlot engineSlot = this.getSlot("engine_bay");
+        PartSlot engineSlot = this.getSlot("engine_bay");
         this.entityData.set(HAS_ENGINE, engineSlot != null && engineSlot.getPart() != null);
         this.entityData.set(ENGINE_SECURED, engineSlot != null && engineSlot.isSecured());
-
+        this.entityData.set(ENGINE, (engineSlot != null && engineSlot.getPart() != null) ? engineSlot.getPart().getId() : "none");
         // 🔥 NOUVEAU : Synchro des types de roues pour l'affichage visuel
         this.entityData.set(WHEEL_FL, getWheelTypeAt("wheel_front_left"));
         this.entityData.set(WHEEL_FR, getWheelTypeAt("wheel_front_right"));
@@ -298,7 +296,7 @@ public abstract class BaseVehicleEntity extends Entity implements GeoEntity {
     private String getWheelTypeAt(String slotId) {
         PartSlot slot = this.getSlot(slotId);
         if (slot != null && slot.getPart() instanceof fr.frankulinn.vehiclemod.entity.parts.WheelPart wheel) {
-            return wheel.getWheelType();
+            return wheel.getId();
         }
         return "none";
     }

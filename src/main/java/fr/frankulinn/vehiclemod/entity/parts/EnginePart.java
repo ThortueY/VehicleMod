@@ -5,14 +5,13 @@ public class EnginePart extends VehiclePart {
     private final float maxSpeed;
     private final float fuelConsumption;
 
-    public EnginePart(float horsepower, float weight, float maxSpeed, float fuelConsumption) {
-        super(weight);
+    public EnginePart(float horsepower, float weight, float maxSpeed, float fuelConsumption, String id ) {
+        super(weight, id);
         this.horsepower = horsepower;
         this.maxSpeed = maxSpeed;
         this.fuelConsumption = fuelConsumption;
     }
 
-    // ... tes autres getters
 
     public float getFuelConsumption() {
         return fuelConsumption;

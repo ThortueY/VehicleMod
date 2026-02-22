@@ -5,8 +5,10 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 import fr.frankulinn.vehiclemod.client.model.EngineModel;
 import fr.frankulinn.vehiclemod.client.model.WheelModel;
 import fr.frankulinn.vehiclemod.entity.BaseVehicleEntity;
+import fr.frankulinn.vehiclemod.entity.parts.PartSlot;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
+import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.world.phys.Vec3;
 import software.bernie.geckolib.cache.object.BakedGeoModel;
 import software.bernie.geckolib.renderer.GeoEntityRenderer;
@@ -30,7 +32,7 @@ public class VehiclePartsLayer extends GeoRenderLayer<BaseVehicleEntity> {
         // --- 1. RENDU DU MOTEUR ---
         if (animatable.getEntityData().get(BaseVehicleEntity.HAS_ENGINE)) {
 
-            fr.frankulinn.vehiclemod.entity.parts.PartSlot engineSlot = animatable.getSlot("engine_bay");
+            PartSlot engineSlot = animatable.getSlot("engine_bay");
 
             if (engineSlot != null && engineSlot.getOffset() != null) {
                 Vec3 offset = engineSlot.getOffset();
@@ -39,6 +41,7 @@ public class VehiclePartsLayer extends GeoRenderLayer<BaseVehicleEntity> {
 
                 poseStack.translate(offset.x, offset.y, offset.z);
 
+                this.engineModel.setEngineId(animatable.getEntityData().get(BaseVehicleEntity.ENGINE));
                 BakedGeoModel bakedEngineModel = this.engineModel
                         .getBakedModel(this.engineModel.getModelResource(animatable));
                 RenderType engineRenderType = RenderType
@@ -66,15 +69,15 @@ public class VehiclePartsLayer extends GeoRenderLayer<BaseVehicleEntity> {
 
     private void renderWheel(PoseStack poseStack, BaseVehicleEntity animatable, MultiBufferSource bufferSource,
             float partialTick, int packedLight, int packedOverlay, String slotId,
-            net.minecraft.network.syncher.EntityDataAccessor<String> dataAccessor) {
+            EntityDataAccessor<String> dataAccessor) {
 
         String wheelType = animatable.getEntityData().get(dataAccessor);
 
         if (!wheelType.equals("none")) {
-            fr.frankulinn.vehiclemod.entity.parts.PartSlot slot = animatable.getSlot(slotId);
+            PartSlot slot = animatable.getSlot(slotId);
 
             if (slot != null && slot.getOffset() != null) {
-                net.minecraft.world.phys.Vec3 offset = slot.getOffset();
+                Vec3 offset = slot.getOffset();
 
                 poseStack.pushPose();
 

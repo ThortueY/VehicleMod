@@ -1,6 +1,12 @@
 package fr.frankulinn.vehiclemod.entity.parts;
 
+import fr.frankulinn.vehiclemod.item.EngineItem;
+import fr.frankulinn.vehiclemod.item.WheelItem;
+import fr.frankulinn.vehiclemod.registers.ModItems;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.phys.Vec3;
 
 public class PartSlot {
@@ -97,25 +103,8 @@ public class PartSlot {
         if (this.installedPart != null) {
             CompoundTag partTag = new CompoundTag();
 
-            // On sauvegarde les spécificités selon le type de pièce
-            if (this.installedPart instanceof fr.frankulinn.vehiclemod.entity.parts.EnginePart engine) {
-                partTag.putString("Type", "Engine");
-                partTag.putFloat("Horsepower", engine.getHorsepower());
-                partTag.putFloat("Weight", engine.getWeight());
-
-                // --- NOUVEAU : ON SAUVEGARDE ENFIN L'ESSENCE ET LA VITESSE ! ---
-                partTag.putFloat("MaxSpeed", engine.getMaxSpeed());
-                partTag.putFloat("FuelConsumption", engine.getFuelConsumption());
-            }
-            else if (this.installedPart instanceof fr.frankulinn.vehiclemod.entity.parts.WheelPart wheel) {
-                partTag.putString("Type", "Wheel");
-                partTag.putFloat("Grip", wheel.getGrip());
-                partTag.putFloat("Weight", wheel.getWeight());
-                partTag.putString("WheelType", wheel.getWheelType()); // "offroad", "kart", etc.
-            }
-
-            // Stats communes
-            partTag.putFloat("Condition", this.installedPart.getCondition());
+            partTag.putString("id",  installedPart.getId()); //Sauvegarde l'ID de l'item
+            partTag.putFloat("Condition", this.installedPart.getCondition()); //Sauvegarde son état
             tag.put("Part", partTag);
         }
         return tag;
@@ -132,26 +121,26 @@ public class PartSlot {
             String type = partTag.getString("Type");
             float weight = partTag.getFloat("Weight");
             float condition = partTag.getFloat("Condition");
+            String id = partTag.getString("id");
+            Item registredPartItem = BuiltInRegistries.ITEM.get(ResourceLocation.fromNamespaceAndPath("vehiclemod", id));
 
-            // On recrée l'objet pièce selon son type sauvegardé
-            if (type.equals("Engine")) {
-                float hp = partTag.getFloat("Horsepower");
-                float maxSpeed = partTag.getFloat("MaxSpeed");
-                float fuelConsumption = partTag.getFloat("FuelConsumption");
-                this.installedPart = new fr.frankulinn.vehiclemod.entity.parts.EnginePart(hp, weight,maxSpeed, fuelConsumption );
-            }
-            else if (type.equals("Wheel")) {
-                float grip = partTag.getFloat("Grip");
-                String wheelType = partTag.getString("WheelType");
-                this.installedPart = new WheelPart(grip, weight, wheelType);
+            if (registredPartItem instanceof EngineItem engineItem) {
+                this.installedPart = engineItem.createPart();
             }
 
+            if(registredPartItem instanceof WheelItem wheelItem) {
+                this.installedPart = wheelItem.createPart();
+            }
             if (this.installedPart != null) {
                 this.installedPart.setCondition(condition);
             }
-        } else {
+
+            } else {
             this.installedPart = null;
             this.state = PartState.EMPTY;
         }
-    }
+
+
+        }
+
 }

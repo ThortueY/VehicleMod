@@ -22,8 +22,8 @@ public class WheelItem extends Item {
     // L'usine qui crée la pièce pour le slot !
     public WheelPart createPart() {
         // Magie : on récupère l'ID exact tel que tu l'as déclaré dans ModItems ! (ex: "kart_wheel")
-        String modelId = BuiltInRegistries.ITEM.getKey(this).getPath();
-        return new WheelPart(this.baseGrip, this.baseWeight, modelId);
+        String id = BuiltInRegistries.ITEM.getKey(this).getPath();
+        return new WheelPart(this.baseGrip, this.baseWeight, id);
     }
 
     public PartCategory getPartCategory() {
