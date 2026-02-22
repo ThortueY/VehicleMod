@@ -58,15 +58,30 @@ public class VehicleHitboxLayer extends GeoRenderLayer<BaseVehicleEntity> {
 
             // 3. LOGIQUE D'AFFICHAGE SELON L'ITEM ET L'ÉTAT DU SLOT
             if (slot.isEmpty()) {
-                if (isEngine && slot.getId().equals("engine_bay")) shouldHighlight = true;
-                if (isWheel && slot.getId().startsWith("wheel_")) shouldHighlight = true;
+                // Si on tient une Roue
+                if (isWheel && slot.getId().startsWith("wheel_")) {
+                    shouldHighlight = true;
+                    WheelItem wheelHeld = (WheelItem) item;
+                    if (wheelHeld.getCategory() != slot.getAllowedCategory()) {
+                        r = 1f; g = 0f; b = 0f; // ROUGE ! (Mauvaise catégorie)
+                    }
+                }
+                // Si on tient un Moteur
+                else if (isEngine && slot.getId().equals("engine_bay")) {
+                    shouldHighlight = true;
+                    EngineItem engineHeld = (EngineItem) item;
+                    if (engineHeld.getCategory() != slot.getAllowedCategory()) {
+                        r = 1f; g = 0f; b = 0f; // ROUGE ! (Mauvaise catégorie)
+                    }
+                }
             } else {
+                // Logique de la clé à molette (inchangée)
                 if (isWrench && !slot.isSecured()) {
                     shouldHighlight = true;
-                    r = 1f; g = 1f; b = 0f; // Jaune (Besoin d'être vissé)
+                    r = 1f; g = 1f; b = 0f; // Jaune
                 } else if (isWrench && slot.isSecured()) {
                     shouldHighlight = true;
-                    r = 1f; g = 0.5f; b = 0f; // Orange (Peut être dévissé)
+                    r = 1f; g = 0.5f; b = 0f; // Orange
                 }
             }
 
