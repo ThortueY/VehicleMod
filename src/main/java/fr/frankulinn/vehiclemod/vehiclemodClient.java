@@ -39,7 +39,7 @@ public class vehiclemodClient {
     @SubscribeEvent
     public static void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {
         // On assigne le "Renderer invisible" à notre châssis
-        event.registerEntityRenderer(ModEntities.KART_VEHICLE.get(), VehicleChassisRenderer::new);
+        event.registerEntityRenderer(ModEntities.GO_KART.get(), VehicleChassisRenderer::new);
         event.registerEntityRenderer(ModEntities.INTERACTION_PART.get(), NoopRenderer::new);
     }
 

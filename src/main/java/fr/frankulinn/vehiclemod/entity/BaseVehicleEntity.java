@@ -258,16 +258,15 @@ public abstract class BaseVehicleEntity extends Entity implements GeoEntity {
     //Déclaration des variables synchronisées entre le client et le serveur
     @Override
     protected void defineSynchedData(SynchedEntityData.Builder builder) {
-        // Vide pour l'instant
         builder.define(HAS_ENGINE, false);
         builder.define(ENGINE_SECURED, false);
         builder.define(SECURED_WHEELS, 0); // 0 roue vissée au départ
-        builder.define(WHEEL_FL, "none");
-        builder.define(WHEEL_FR, "none");
-        builder.define(WHEEL_BL, "none");
-        builder.define(WHEEL_BR, "none");
-        builder.define(FUEL_LEVEL, 0.0f);
-        builder.define(ENGINE, "none");
+        builder.define(WHEEL_FL, "none"); //L'ID de la roue installé
+        builder.define(WHEEL_FR, "none"); //L'ID de la roue installé
+        builder.define(WHEEL_BL, "none"); //L'ID de la roue installé
+        builder.define(WHEEL_BR, "none"); //L'ID de la roue installé
+        builder.define(FUEL_LEVEL, 0.0f); //Niveau d'essence
+        builder.define(ENGINE, "none"); //L'id du moteur
     }
 
     //Mise à jour des variables dans l'entité
@@ -276,8 +275,11 @@ public abstract class BaseVehicleEntity extends Entity implements GeoEntity {
         PartSlot engineSlot = this.getSlot("engine_bay");
         this.entityData.set(HAS_ENGINE, engineSlot != null && engineSlot.getPart() != null);
         this.entityData.set(ENGINE_SECURED, engineSlot != null && engineSlot.isSecured());
+
+        //Synchronisation de l'engine pour le render
         this.entityData.set(ENGINE, (engineSlot != null && engineSlot.getPart() != null) ? engineSlot.getPart().getId() : "none");
-        // 🔥 NOUVEAU : Synchro des types de roues pour l'affichage visuel
+
+        //Synchronisation des roues pour le render
         this.entityData.set(WHEEL_FL, getWheelTypeAt("wheel_front_left"));
         this.entityData.set(WHEEL_FR, getWheelTypeAt("wheel_front_right"));
         this.entityData.set(WHEEL_BL, getWheelTypeAt("wheel_back_left"));

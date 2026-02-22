@@ -14,12 +14,12 @@ public class EngineModel extends GeoModel<BaseVehicleEntity> {
     @Override
     public ResourceLocation getModelResource(BaseVehicleEntity object) {
         // Remplace par le nom de ton fichier json
-        return ResourceLocation.fromNamespaceAndPath("vehiclemod", "geo/"+ engineId + ".geo.json");
+        return ResourceLocation.fromNamespaceAndPath("vehiclemod", "geo/entity/vehicle_engines/"+ engineId + ".geo.json");
     }
 
     @Override
     public ResourceLocation getTextureResource(BaseVehicleEntity object) {
-        return ResourceLocation.fromNamespaceAndPath("vehiclemod", "textures/entity/"+ engineId +".png");
+        return ResourceLocation.fromNamespaceAndPath("vehiclemod", "textures/entity/vehicle_engines/"+ engineId +".png");
     }
 
     @Override

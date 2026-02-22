@@ -17,18 +17,21 @@ public class ModEntities {
     public static final DeferredRegister<EntityType<?>> ENTITY_TYPES =
             DeferredRegister.create(Registries.ENTITY_TYPE, Vehiclemod.MODID);
 
-    // Enregistrement de notre châssis
-    public static final Supplier<EntityType<BaseVehicleEntity>> KART_VEHICLE = ENTITY_TYPES.register("vehicle_chassis",
-            () -> EntityType.Builder.<BaseVehicleEntity>of(KartEntity::new, MobCategory.MISC)
-                    .sized(2.0F, 1.5F) // Taille de la hitbox (Largeur, Hauteur) en blocs
-                    .clientTrackingRange(10) // Distance de rendu
-                    .build("vehicle_chassis")
-    );
-
+    //Slot d'intéraction
     public static final Supplier<EntityType<InteractionPartEntity>> INTERACTION_PART = ENTITY_TYPES.register("interaction_part",
             () -> EntityType.Builder.<InteractionPartEntity>of(InteractionPartEntity::new, MobCategory.MISC)
                     .sized(0.5F, 0.5F) // Taille par défaut
                     .clientTrackingRange(10)
                     .build("interaction_part")
     );
+
+    //Enregistrement des véhicules
+    public static final Supplier<EntityType<BaseVehicleEntity>> GO_KART = ENTITY_TYPES.register("go_kart",
+            () -> EntityType.Builder.<BaseVehicleEntity>of(KartEntity::new, MobCategory.MISC)
+                    .sized(2.0F, 1.5F) // Taille de la hitbox (Largeur, Hauteur) en blocs
+                    .clientTrackingRange(10) // Distance de rendu
+                    .build("go_kart")
+    );
+
+
 }

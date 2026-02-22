@@ -16,13 +16,13 @@ public class WheelModel extends GeoModel<BaseVehicleEntity> {
     @Override
     public ResourceLocation getModelResource(BaseVehicleEntity object) {
         // Ex: "geo/wheel_offroad.geo.json"
-        return ResourceLocation.fromNamespaceAndPath("vehiclemod", "geo/" + currentWheelType + ".geo.json");
+        return ResourceLocation.fromNamespaceAndPath("vehiclemod", "geo/entity/vehicle_wheels/" + currentWheelType + ".geo.json");
     }
 
     @Override
     public ResourceLocation getTextureResource(BaseVehicleEntity object) {
         // Ex: "textures/entity/wheel_offroad.png"
-        return ResourceLocation.fromNamespaceAndPath("vehiclemod", "textures/entity/" + currentWheelType + ".png");
+        return ResourceLocation.fromNamespaceAndPath("vehiclemod", "textures/entity/vehicle_wheels/" + currentWheelType + ".png");
     }
 
     @Override
