@@ -3,6 +3,9 @@ package fr.frankulinn.vehiclemod.entity;
 import fr.frankulinn.vehiclemod.entity.parts.EnginePart;
 import fr.frankulinn.vehiclemod.entity.parts.InteractionPartEntity;
 import fr.frankulinn.vehiclemod.entity.parts.PartSlot;
+import fr.frankulinn.vehiclemod.entity.parts.SlotInteractions.EngineBayInteraction;
+import fr.frankulinn.vehiclemod.entity.parts.SlotInteractions.FuelCapInteraction;
+import fr.frankulinn.vehiclemod.entity.parts.SlotInteractions.WheelInteraction;
 import fr.frankulinn.vehiclemod.registers.ModEntities;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.syncher.SynchedEntityData;
@@ -23,10 +26,7 @@ import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class VehicleEntity extends Entity implements GeoEntity {
 
@@ -61,13 +61,13 @@ public class VehicleEntity extends Entity implements GeoEntity {
 
         // Le Moteur
         // On passe le Z de 1.0 à -1.0 (ou -1.5 si le moteur est encore plus en arrière !)
-        this.partSlots.put("engine_bay", new fr.frankulinn.vehiclemod.entity.parts.PartSlot("engine_bay", new Vec3(0, 0.5, -1.0), 0.8f, 0.8f));
+        this.partSlots.put("engine_bay", new fr.frankulinn.vehiclemod.entity.parts.PartSlot("engine_bay", new Vec3(0, 0.5, -1.0), 0.8f, 0.8f, new EngineBayInteraction()));
         // Les 4 Roues
-        this.partSlots.put("wheel_front_left", new PartSlot("wheel_front_left", new Vec3(1.0, 0.2, 1.0), 0.5f, 0.5f));
-        this.partSlots.put("wheel_front_right", new PartSlot("wheel_front_right", new Vec3(-1.0, 0.2, 1.0), 0.5f, 0.5f));
-        this.partSlots.put("wheel_back_left", new PartSlot("wheel_back_left", new Vec3(1.0, 0.2, -1.0), 0.5f, 0.5f));
-        this.partSlots.put("wheel_back_right", new PartSlot("wheel_back_right", new Vec3(-1.0, 0.2, -1.0), 0.5f, 0.5f));
-        this.partSlots.put("fuel_cap", new fr.frankulinn.vehiclemod.entity.parts.PartSlot("fuel_cap", new Vec3(0.8, 0.5, -1.0), 0.4f, 0.4f));
+        this.partSlots.put("wheel_front_left", new PartSlot("wheel_front_left", new Vec3(1.0, 0.2, 1.0), 0.5f, 0.5f, new WheelInteraction()));
+        this.partSlots.put("wheel_front_right", new PartSlot("wheel_front_right", new Vec3(-1.0, 0.2, 1.0), 0.5f, 0.5f, new WheelInteraction()));
+        this.partSlots.put("wheel_back_left", new PartSlot("wheel_back_left", new Vec3(1.0, 0.2, -1.0), 0.5f, 0.5f, new WheelInteraction()));
+        this.partSlots.put("wheel_back_right", new PartSlot("wheel_back_right", new Vec3(-1.0, 0.2, -1.0), 0.5f, 0.5f, new WheelInteraction()));
+        this.partSlots.put("fuel_cap", new fr.frankulinn.vehiclemod.entity.parts.PartSlot("fuel_cap", new Vec3(0.8, 0.5, -1.0), 0.4f, 0.4f, new FuelCapInteraction()));
     }
 
     private void spawnHitboxes() {
@@ -363,6 +363,10 @@ public class VehicleEntity extends Entity implements GeoEntity {
 
     public PartSlot getSlot(String slotId) {
         return this.partSlots.get(slotId);
+    }
+
+    public Collection<PartSlot> getPartSlots() {
+        return this.partSlots.values();
     }
 
 

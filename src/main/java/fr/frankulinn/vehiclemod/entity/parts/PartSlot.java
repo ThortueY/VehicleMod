@@ -11,13 +11,15 @@ public class PartSlot {
     private final Vec3 offset;
     private final float hitboxWidth;
     private final float hitboxHeight;
+    private final SlotInteraction interactionBehavior;
 
-    public PartSlot(String id, Vec3 offset, float hitboxWidth, float hitboxHeight) {
+    public PartSlot(String id, Vec3 offset, float hitboxWidth, float hitboxHeight, SlotInteraction interactionBehavior) {
         this.slotId = id;
         this.offset = offset;
         this.state = fr.frankulinn.vehiclemod.entity.parts.PartState.EMPTY;
         this.hitboxWidth = hitboxWidth;
         this.hitboxHeight = hitboxHeight;
+        this.interactionBehavior = interactionBehavior;
     }
 
     public net.minecraft.world.phys.Vec3 getOffset() {
@@ -76,6 +78,10 @@ public class PartSlot {
 
     public String getId() {
         return this.slotId;
+    }
+
+    public SlotInteraction getInteractionBehavior() {
+        return interactionBehavior;
     }
 
     public CompoundTag save() {
