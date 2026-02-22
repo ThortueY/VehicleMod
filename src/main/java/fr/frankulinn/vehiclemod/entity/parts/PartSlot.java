@@ -12,14 +12,20 @@ public class PartSlot {
     private final float hitboxWidth;
     private final float hitboxHeight;
     private final SlotInteraction interactionBehavior;
+    private final PartCategory allowedCategory;
 
-    public PartSlot(String id, Vec3 offset, float hitboxWidth, float hitboxHeight, SlotInteraction interactionBehavior) {
+    public PartSlot(String id, Vec3 offset, float hitboxWidth, float hitboxHeight, SlotInteraction interactionBehavior, PartCategory allowedCategory) {
         this.slotId = id;
         this.offset = offset;
-        this.state = fr.frankulinn.vehiclemod.entity.parts.PartState.EMPTY;
+        this.state = PartState.EMPTY;
         this.hitboxWidth = hitboxWidth;
         this.hitboxHeight = hitboxHeight;
         this.interactionBehavior = interactionBehavior;
+        this.allowedCategory = allowedCategory;
+    }
+
+    public PartCategory getAllowedCategory() {
+        return this.allowedCategory;
     }
 
     public net.minecraft.world.phys.Vec3 getOffset() {

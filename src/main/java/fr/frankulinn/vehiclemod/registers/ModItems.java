@@ -1,6 +1,7 @@
 package fr.frankulinn.vehiclemod.registers;
 
 import fr.frankulinn.vehiclemod.Vehiclemod;
+import fr.frankulinn.vehiclemod.entity.parts.PartCategory;
 import fr.frankulinn.vehiclemod.item.EngineItem;
 import fr.frankulinn.vehiclemod.item.JerricanItem;
 import fr.frankulinn.vehiclemod.item.WheelItem;
@@ -17,11 +18,11 @@ public class ModItems {
 
 
     // Remplace "new Item" par "new EngineItem" (ou le nom exact de ta classe)
-    public static final DeferredItem<Item> ENGINE_ITEM = ITEMS.register("engine", () -> new EngineItem(new Item.Properties()));
+    public static final DeferredItem<Item> ENGINE_ITEM = ITEMS.register("engine", () -> new EngineItem(new Item.Properties(), PartCategory.KART_ENGINE));
 
     public static final DeferredItem<Item> WRENCH_ITEM = ITEMS.register("wrench", () -> new WrenchItem(new Item.Properties()));
 
-    public static final DeferredItem<Item> WHEEL_ITEM = ITEMS.register("wheel", () -> new WheelItem(new Item.Properties()));
+    public static final DeferredItem<Item> WHEEL_ITEM = ITEMS.register("wheel", () -> new WheelItem(new Item.Properties(), PartCategory.KART_WHEEL));
 
     public static final DeferredItem<Item> JERRICAN_ITEM = ITEMS.register("jerrican", () -> new JerricanItem(new Item.Properties()));
 

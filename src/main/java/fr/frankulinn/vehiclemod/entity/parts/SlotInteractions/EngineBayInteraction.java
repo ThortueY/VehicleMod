@@ -19,7 +19,13 @@ public class EngineBayInteraction implements SlotInteraction {
 
         // 1. SI L'EMPLACEMENT EST VIDE
         if (slot.isEmpty()) {
-            if (stackInHand.getItem() instanceof EngineItem) {
+            if (stackInHand.getItem() instanceof EngineItem engineItem) {
+
+                if (engineItem.getCategory() != slot.getAllowedCategory()) {
+                    player.displayClientMessage(Component.literal("§cCette roue n'est pas de la bonne taille pour ce véhicule !"), true);
+                    return InteractionResult.SUCCESS;
+                }
+
                 EnginePart newEngine = new EnginePart(150.0f, 150.0f, 30.0f , 0.05f);
                 if (slot.installPart(newEngine)) {
                     if (!player.isCreative()) stackInHand.shrink(1);
