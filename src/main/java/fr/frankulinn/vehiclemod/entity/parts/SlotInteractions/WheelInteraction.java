@@ -21,12 +21,12 @@ public class WheelInteraction implements SlotInteraction {
         if (slot.isEmpty()) {
             if (stackInHand.getItem() instanceof WheelItem wheelItem) {
 
-                if (wheelItem.getCategory() != slot.getAllowedCategory()) {
+                if (wheelItem.getPartCategory() != slot.getAllowedCategory()) {
                     player.displayClientMessage(Component.literal("§cCette roue n'est pas de la bonne taille pour ce véhicule !"), true);
                     return InteractionResult.SUCCESS;
                 }
 
-                WheelPart newWheel = new WheelPart(1.0f, 15.0f, "kart_wheel");
+                WheelPart newWheel = wheelItem.createPart();
                 if (slot.installPart(newWheel)) {
                     if (!player.isCreative()) stackInHand.shrink(1);
                     player.displayClientMessage(Component.literal("§aRoue posée ! (Non fixée)"), true);

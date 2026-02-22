@@ -62,7 +62,7 @@ public class VehicleHitboxLayer extends GeoRenderLayer<BaseVehicleEntity> {
                 if (isWheel && slot.getId().startsWith("wheel_")) {
                     shouldHighlight = true;
                     WheelItem wheelHeld = (WheelItem) item;
-                    if (wheelHeld.getCategory() != slot.getAllowedCategory()) {
+                    if (wheelHeld.getPartCategory() != slot.getAllowedCategory()) {
                         r = 1f; g = 0f; b = 0f; // ROUGE ! (Mauvaise catégorie)
                     }
                 }
@@ -70,7 +70,7 @@ public class VehicleHitboxLayer extends GeoRenderLayer<BaseVehicleEntity> {
                 else if (isEngine && slot.getId().equals("engine_bay")) {
                     shouldHighlight = true;
                     EngineItem engineHeld = (EngineItem) item;
-                    if (engineHeld.getCategory() != slot.getAllowedCategory()) {
+                    if (engineHeld.getPartCategory() != slot.getAllowedCategory()) {
                         r = 1f; g = 0f; b = 0f; // ROUGE ! (Mauvaise catégorie)
                     }
                 }

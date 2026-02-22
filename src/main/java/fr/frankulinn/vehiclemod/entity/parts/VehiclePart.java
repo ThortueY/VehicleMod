@@ -7,6 +7,7 @@ public abstract class VehiclePart {
     private final float baseWeight;
     private float condition; // De 0.0f (détruit) à 1.0f (neuf)
 
+
     public VehiclePart(float baseWeight) {
         this.baseWeight = baseWeight;
         this.condition = 1.0f; // Neuf par défaut

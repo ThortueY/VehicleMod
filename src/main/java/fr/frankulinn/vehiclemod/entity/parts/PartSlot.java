@@ -143,7 +143,7 @@ public class PartSlot {
             else if (type.equals("Wheel")) {
                 float grip = partTag.getFloat("Grip");
                 String wheelType = partTag.getString("WheelType");
-                this.installedPart = new fr.frankulinn.vehiclemod.entity.parts.WheelPart(grip, weight, wheelType);
+                this.installedPart = new WheelPart(grip, weight, wheelType);
             }
 
             if (this.installedPart != null) {
@@ -151,7 +151,7 @@ public class PartSlot {
             }
         } else {
             this.installedPart = null;
-            this.state = fr.frankulinn.vehiclemod.entity.parts.PartState.EMPTY;
+            this.state = PartState.EMPTY;
         }
     }
 }
