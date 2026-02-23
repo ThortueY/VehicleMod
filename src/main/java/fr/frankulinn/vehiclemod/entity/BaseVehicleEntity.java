@@ -1,6 +1,5 @@
 package fr.frankulinn.vehiclemod.entity;
 
-import fr.frankulinn.vehiclemod.entity.parts.EnginePart;
 import fr.frankulinn.vehiclemod.entity.parts.InteractionPartEntity;
 import fr.frankulinn.vehiclemod.entity.parts.PartSlot;
 import fr.frankulinn.vehiclemod.registers.ModEntities;
@@ -26,32 +25,26 @@ import java.util.*;
 
 public abstract class BaseVehicleEntity extends Entity implements GeoEntity {
 
-    //Variables pour vérifier si un moteur est monté et vissé
-    public static final EntityDataAccessor<Boolean> HAS_ENGINE = SynchedEntityData.defineId(BaseVehicleEntity.class, EntityDataSerializers.BOOLEAN);
-    private static final EntityDataAccessor<Boolean> ENGINE_SECURED = SynchedEntityData.defineId(BaseVehicleEntity.class, EntityDataSerializers.BOOLEAN);
-    public static final EntityDataAccessor<String> ENGINE = SynchedEntityData.defineId(BaseVehicleEntity.class, EntityDataSerializers.STRING);
+    public static final EntityDataAccessor<CompoundTag> PARTS_SYNC = SynchedEntityData.defineId(BaseVehicleEntity.class,
+            EntityDataSerializers.COMPOUND_TAG);
 
-    //Variables pour vérifier si les roues sont montées et vissées
-    public static final EntityDataAccessor<Integer> SECURED_WHEELS = SynchedEntityData.defineId(BaseVehicleEntity.class, EntityDataSerializers.INT);
-    public static final EntityDataAccessor<String> WHEEL_FL = SynchedEntityData.defineId(BaseVehicleEntity.class, EntityDataSerializers.STRING);
-    public static final EntityDataAccessor<String> WHEEL_FR = SynchedEntityData.defineId(BaseVehicleEntity.class, EntityDataSerializers.STRING);
-    public static final EntityDataAccessor<String> WHEEL_BL = SynchedEntityData.defineId(BaseVehicleEntity.class, EntityDataSerializers.STRING);
-    public static final EntityDataAccessor<String> WHEEL_BR = SynchedEntityData.defineId(BaseVehicleEntity.class, EntityDataSerializers.STRING);
-
-    //Variables pour le réservoir
-    public static final EntityDataAccessor<Float> FUEL_LEVEL = SynchedEntityData.defineId(BaseVehicleEntity.class, EntityDataSerializers.FLOAT);
+    // Variables pour le réservoir
+    public static final EntityDataAccessor<Float> FUEL_LEVEL = SynchedEntityData.defineId(BaseVehicleEntity.class,
+            EntityDataSerializers.FLOAT);
     public static final float MAX_FUEL = 100.0f; // La capacité maximum du réservoir
 
-    //Slots pour les pièces de véhicule
+    // Slots pour les pièces de véhicule
     private final Map<String, PartSlot> partSlots = new HashMap<>();
     private final List<InteractionPartEntity> hitboxes = new ArrayList<>();
     private boolean hitboxesSpawned = false;
 
-    //Variables pour la physique du véhicule
+    // Variables pour la physique du véhicule
     public float wheelRotation = 0.0f;
     public float prevWheelRotation = 0.0f;
     public float steeringAngle = 0.0f;
     public float prevSteeringAngle = 0.0f;
+
+    private final java.util.Map<java.util.UUID, String> passengerSeats = new java.util.HashMap<>();
 
     // Constructeur obligatoire pour que Minecraft puisse spawner l'entité
     public BaseVehicleEntity(EntityType<?> entityType, Level level) {
@@ -59,10 +52,10 @@ public abstract class BaseVehicleEntity extends Entity implements GeoEntity {
         initSlots();
     }
 
-    //Constructeur permettant de créer les slots
+    // Constructeur permettant de créer les slots
     protected abstract void initSlots();
 
-    //Méthode pour ajouter un slot
+    // Méthode pour ajouter un slot
     protected void addSlot(String id, PartSlot slot) {
         this.partSlots.put(id, slot);
     }
@@ -105,7 +98,8 @@ public abstract class BaseVehicleEntity extends Entity implements GeoEntity {
                 boolean isReversing = this.getDeltaMovement().dot(forwardVec) < 0;
 
                 // Formule mathématique : Vitesse / Rayon de la roue.
-                // Le "4.0f" dépend de la taille de ta roue. Si elle tourne trop lentement, augmente-le !
+                // Le "4.0f" dépend de la taille de ta roue. Si elle tourne trop lentement,
+                // augmente-le !
                 float rotationSpeed = (float) speed * 4.0f;
                 this.wheelRotation += isReversing ? -rotationSpeed : rotationSpeed;
             }
@@ -115,7 +109,8 @@ public abstract class BaseVehicleEntity extends Entity implements GeoEntity {
                 // xxa représente les touches Q/D (ou A/D). On multiplie par 35 degrés max.
                 float targetSteering = -driver.xxa * 35.0f;
 
-                // On lisse le mouvement avec un Lerp pour que les roues ne tournent pas de façon saccadée
+                // On lisse le mouvement avec un Lerp pour que les roues ne tournent pas de
+                // façon saccadée
                 this.steeringAngle += (targetSteering - this.steeringAngle) * 0.2f;
             } else {
                 // Si personne ne conduit, les roues se remettent droites doucement
@@ -131,29 +126,56 @@ public abstract class BaseVehicleEntity extends Entity implements GeoEntity {
         double enginePower = 0.0;
         float currentFuel = this.entityData.get(FUEL_LEVEL);
 
+        boolean isEngineSecured = false;
+        int securedWheels = 0;
+
+        // --- CORRECTION CLIENT/SERVEUR ---
+        if (this.level().isClientSide()) {
+            // Le client regarde le dictionnaire visuel ET l'état "vissé"
+            CompoundTag syncedParts = this.entityData.get(PARTS_SYNC);
+
+            String engine = syncedParts.getString("engine_bay");
+            boolean engineSecured = syncedParts.getBoolean("engine_bay_secured"); // On lit le booléen
+            isEngineSecured = (engine != null && !engine.isEmpty() && !engine.equals("none") && engineSecured);
+
+            for (PartSlot slot : this.getPartSlots()) {
+                String wheelId = syncedParts.getString(slot.getId());
+                boolean wheelSecured = syncedParts.getBoolean(slot.getId() + "_secured"); // On lit le booléen
+
+                if (slot.getId().startsWith("wheel") && wheelId != null && !wheelId.isEmpty() && !wheelId.equals("none")
+                        && wheelSecured) {
+                    securedWheels++;
+                }
+            }
+        } else {
+            // Le serveur regarde les vrais objets (Aucun changement ici)
+            PartSlot engineSlot = this.getSlot("engine_bay");
+            isEngineSecured = engineSlot != null && engineSlot.getPart() != null && engineSlot.isSecured();
+
+            for (PartSlot slot : this.getPartSlots()) {
+                if (slot.getId().startsWith("wheel") && slot.isSecured()) {
+                    securedWheels++;
+                }
+            }
+        }
         // 1. Calcul de la puissance du moteur
-        if (this.entityData.get(HAS_ENGINE) && this.entityData.get(ENGINE_SECURED) && currentFuel > 0) {
+        if (isEngineSecured && currentFuel > 0) {
             enginePower = 0.05;
 
+            // La consommation d'essence se fait UNIQUEMENT sur le serveur
             if (forwardImpulse != 0 && !this.level().isClientSide()) {
-
-                // --- NOUVEAU : On récupère la consommation dynamique ---
-                float consumptionRate = 0.05f; // Valeur de secours par défaut
-
+                float consumptionRate = 0.05f;
                 PartSlot engineSlot = this.getSlot("engine_bay");
-                if (engineSlot != null && engineSlot.getPart() instanceof EnginePart enginePart) {
+                if (engineSlot != null && engineSlot
+                        .getPart() instanceof fr.frankulinn.vehiclemod.entity.parts.EnginePart enginePart) {
                     consumptionRate = enginePart.getFuelConsumption();
                 }
-                // -------------------------------------------------------
 
-                // On utilise la vraie consommation du moteur !
                 float newFuel = Math.max(0.0f, currentFuel - consumptionRate);
                 this.entityData.set(FUEL_LEVEL, newFuel);
             }
         }
 
-        // Ajustement selon le nombre de roues
-        int securedWheels = this.entityData.get(SECURED_WHEELS);
         enginePower *= (securedWheels / 4.0);
 
         // 2. On tourne UNIQUEMENT si le kart est en train de rouler (Vitesse > 0.05)
@@ -161,7 +183,8 @@ public abstract class BaseVehicleEntity extends Entity implements GeoEntity {
         double horizontalSpeed = currentMotion.horizontalDistance();
 
         if (horizontalSpeed > 0.05) {
-            // Plus on va vite, plus le volant est réactif (tu pourras ajuster ce multiplicateur)
+            // Plus on va vite, plus le volant est réactif (tu pourras ajuster ce
+            // multiplicateur)
             float turnSpeed = strafeImpulse * 4.0f;
 
             // Si on recule, on inverse la direction du volant pour que ça reste naturel
@@ -174,7 +197,8 @@ public abstract class BaseVehicleEntity extends Entity implements GeoEntity {
         // 3. Application de la force (Inertie)
         Vec3 forwardVec = Vec3.directionFromRotation(0, this.getYRot());
 
-        // Au lieu de dire "La vitesse EST X", on dit "On AJOUTE X à la vitesse actuelle"
+        // Au lieu de dire "La vitesse EST X", on dit "On AJOUTE X à la vitesse
+        // actuelle"
         double addedMotionX = forwardVec.x * forwardImpulse * enginePower;
         double addedMotionZ = forwardVec.z * forwardImpulse * enginePower;
 
@@ -195,30 +219,24 @@ public abstract class BaseVehicleEntity extends Entity implements GeoEntity {
 
         // --- NOUVEAU : ADHÉRENCE LATÉRALE (ANTI-DRIFT) ---
         if (this.onGround()) {
-            // Dans quelle direction regarde exactement le kart ?
             Vec3 forwardVec = Vec3.directionFromRotation(0, this.getYRot());
-
-            // Le "Dot Product" nous dit quelle fraction de notre inertie actuelle va
-            // VRAIMENT dans la direction de notre capot (positif = on avance, négatif = on recule).
             double forwardSpeed = currentMotion.x * forwardVec.x + currentMotion.z * forwardVec.z;
 
-            // On crée un mouvement "Idéal" (toute l'énergie est redirigée dans l'axe des roues)
-            double idealX = forwardVec.x * forwardSpeed;
-            double idealZ = forwardVec.z * forwardSpeed;
+            // CORRECTION INSTABILITÉ : On garde la Vitesse brute (Magnitude)
+            double currentMag = currentMotion.horizontalDistance();
+            double sign = (forwardSpeed >= 0) ? 1.0 : -1.0;
 
-            // GRIP (Adhérence) : 1.0 = Un train sur des rails (0 drift). 0.0 = Patin à glace.
-            // 0.85 est un bon réglage pour un kart (ça grippe fort, mais on sent un tout petit dérapage à haute vitesse)
+            // Le vecteur idéal conserve 100% de la puissance dans la nouvelle direction
+            double idealX = forwardVec.x * currentMag * sign;
+            double idealZ = forwardVec.z * currentMag * sign;
+
             double grip = 0.85;
 
-            // On mixe le mouvement actuel (glissant) avec le mouvement idéal (droit)
             double newMotionX = currentMotion.x + (idealX - currentMotion.x) * grip;
             double newMotionZ = currentMotion.z + (idealZ - currentMotion.z) * grip;
 
-            // On applique la friction pour ralentir normalement
             newMotionX *= friction;
             newMotionZ *= friction;
-
-            // On limite la chute
             motionY = motionY * 0.98;
 
             this.setDeltaMovement(newMotionX, motionY, newMotionZ);
@@ -232,17 +250,16 @@ public abstract class BaseVehicleEntity extends Entity implements GeoEntity {
         this.move(net.minecraft.world.entity.MoverType.SELF, this.getDeltaMovement());
     }
 
-
-
-    //Méthode pour générer les hitboxes
+    // Méthode pour générer les hitboxes
     private void spawnHitboxes() {
-        // On boucle sur tous les slots enregistrés et on génère leur hitbox automatiquement !
+        // On boucle sur tous les slots enregistrés et on génère leur hitbox
+        // automatiquement !
         for (PartSlot slot : this.partSlots.values()) {
             createHitbox(slot.getId(), slot.getOffset(), slot.getHitboxWidth(), slot.getHitboxHeight());
         }
     }
 
-    //Méthode pour créer une hitbox
+    // Méthode pour créer une hitbox
     private void createHitbox(String slotId, Vec3 offset, float width, float height) {
         InteractionPartEntity hitbox = ModEntities.INTERACTION_PART.get().create(this.level());
         if (hitbox != null) {
@@ -253,46 +270,31 @@ public abstract class BaseVehicleEntity extends Entity implements GeoEntity {
         }
     }
 
-
-
-    //Déclaration des variables synchronisées entre le client et le serveur
+    // Déclaration des variables synchronisées entre le client et le serveur
     @Override
     protected void defineSynchedData(SynchedEntityData.Builder builder) {
-        builder.define(HAS_ENGINE, false);
-        builder.define(ENGINE_SECURED, false);
-        builder.define(SECURED_WHEELS, 0); // 0 roue vissée au départ
-        builder.define(WHEEL_FL, "none"); //L'ID de la roue installé
-        builder.define(WHEEL_FR, "none"); //L'ID de la roue installé
-        builder.define(WHEEL_BL, "none"); //L'ID de la roue installé
-        builder.define(WHEEL_BR, "none"); //L'ID de la roue installé
-        builder.define(FUEL_LEVEL, 0.0f); //Niveau d'essence
-        builder.define(ENGINE, "none"); //L'id du moteur
+        builder.define(PARTS_SYNC, new CompoundTag());
+        builder.define(FUEL_LEVEL, 0.0f);
     }
 
-    //Mise à jour des variables dans l'entité
+    // Mise à jour des variables dans l'entité
     public void updatePartsSync() {
-        // 1. Synchro du Moteur (Présence ET Fixation)
-        PartSlot engineSlot = this.getSlot("engine_bay");
-        this.entityData.set(HAS_ENGINE, engineSlot != null && engineSlot.getPart() != null);
-        this.entityData.set(ENGINE_SECURED, engineSlot != null && engineSlot.isSecured());
+        if (this.level().isClientSide())
+            return;
 
-        //Synchronisation de l'engine pour le render
-        this.entityData.set(ENGINE, (engineSlot != null && engineSlot.getPart() != null) ? engineSlot.getPart().getId() : "none");
+        CompoundTag syncTag = new CompoundTag();
 
-        //Synchronisation des roues pour le render
-        this.entityData.set(WHEEL_FL, getWheelTypeAt("wheel_front_left"));
-        this.entityData.set(WHEEL_FR, getWheelTypeAt("wheel_front_right"));
-        this.entityData.set(WHEEL_BL, getWheelTypeAt("wheel_back_left"));
-        this.entityData.set(WHEEL_BR, getWheelTypeAt("wheel_back_right"));
+        for (fr.frankulinn.vehiclemod.entity.parts.PartSlot slot : this.getPartSlots()) {
+            if (slot.getPart() != null) {
+                // On garde l'ID de la pièce pour l'affichage visuel
+                syncTag.putString(slot.getId(), slot.getPart().getId());
 
-        // 2. Compte des roues pour la vitesse
-        int count = 0;
-        if (this.getSlot("wheel_front_left") != null && this.getSlot("wheel_front_left").isSecured()) count++;
-        if (this.getSlot("wheel_front_right") != null && this.getSlot("wheel_front_right").isSecured()) count++;
-        if (this.getSlot("wheel_back_left") != null && this.getSlot("wheel_back_left").isSecured()) count++;
-        if (this.getSlot("wheel_back_right") != null && this.getSlot("wheel_back_right").isSecured()) count++;
+                // --- NOUVEAU : On informe le client si la pièce est vissée ou non ! ---
+                syncTag.putBoolean(slot.getId() + "_secured", slot.isSecured());
+            }
+        }
 
-        this.entityData.set(SECURED_WHEELS, count);
+        this.entityData.set(PARTS_SYNC, syncTag);
     }
 
     private String getWheelTypeAt(String slotId) {
@@ -305,7 +307,8 @@ public abstract class BaseVehicleEntity extends Entity implements GeoEntity {
 
     private boolean isWheelSecured(String slotId) {
         PartSlot slot = this.getSlot(slotId);
-        return slot != null && slot.isSecured() && slot.getPart() instanceof fr.frankulinn.vehiclemod.entity.parts.WheelPart;
+        return slot != null && slot.isSecured()
+                && slot.getPart() instanceof fr.frankulinn.vehiclemod.entity.parts.WheelPart;
     }
 
     // Empêche les autres entités (et ses propres composants) de pousser la voiture
@@ -325,10 +328,13 @@ public abstract class BaseVehicleEntity extends Entity implements GeoEntity {
         return super.canCollideWith(entity);
     }
 
-
     @Override
     public void lerpTo(double x, double y, double z, float yRot, float xRot, int steps) {
-        // Ne PAS appeler super.lerpTo() — c'est lui qui causait le rollback
+        // NO-OP : Le client et le serveur calculent tous les deux la physique.
+        // La position initiale vient du spawn packet, pas de lerpTo().
+        // On ignore TOUS les sync packets pour éviter le rollback au démontage,
+        // car il y a une race condition : isVehicle() passe à false côté client
+        // AVANT que le dernier paquet de position du serveur n'arrive.
     }
 
     // Sauvegarde des données quand on quitte le monde
@@ -337,7 +343,8 @@ public abstract class BaseVehicleEntity extends Entity implements GeoEntity {
         CompoundTag slotsTag = new CompoundTag();
 
         // On sauvegarde chaque emplacement par son nom ("engine_bay", etc.)
-        for (java.util.Map.Entry<String, fr.frankulinn.vehiclemod.entity.parts.PartSlot> entry : this.partSlots.entrySet()) {
+        for (java.util.Map.Entry<String, fr.frankulinn.vehiclemod.entity.parts.PartSlot> entry : this.partSlots
+                .entrySet()) {
             slotsTag.put(entry.getKey(), entry.getValue().save());
         }
 
@@ -378,31 +385,124 @@ public abstract class BaseVehicleEntity extends Entity implements GeoEntity {
 
     @Override
     public InteractionResult interact(Player player, InteractionHand hand) {
-        // Si on est sur le serveur et que le joueur n'est pas déjà dans un véhicule
+        // On ne monte que si un siège fixé est libre
         if (!this.level().isClientSide() && player.getVehicle() == null) {
-            // Le joueur monte dans la hitbox
-            player.startRiding(this);
-            return InteractionResult.SUCCESS;
+            for (PartSlot slot : this.getPartSlots()) {
+                if (slot.getId().startsWith("seat") && slot.isSecured() && !isSeatOccupied(slot.getId())) {
+                    assignSeat(player, slot.getId());
+                    player.startRiding(this);
+                    return InteractionResult.SUCCESS;
+                }
+            }
+            return InteractionResult.PASS; // Pas de siège libre
         }
         return super.interact(player, hand);
     }
 
+    public void assignSeat(Entity passenger, String slotId) {
+        this.passengerSeats.put(passenger.getUUID(), slotId);
+    }
+
+    // Vérifier si un siège est déjà pris par quelqu'un dans la voiture
+    public boolean isSeatOccupied(String slotId) {
+        for (Entity p : this.getPassengers()) {
+            if (slotId.equals(this.passengerSeats.get(p.getUUID()))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // Nettoyer le registre quand un joueur descend de la voiture
+    @Override
+    protected void removePassenger(Entity passenger) {
+        super.removePassenger(passenger);
+        this.passengerSeats.remove(passenger.getUUID());
+    }
+
     @Override
     protected void positionRider(Entity passenger, Entity.MoveFunction callback) {
-        super.positionRider(passenger, callback);
-        if (this.hasPassenger(passenger)) {
-            // On place le joueur au centre de la hitbox, surélevé de 0.5 bloc pour qu'il ne
-            // rentre pas dans le sol
-            callback.accept(passenger, this.getX(), this.getY() + 0.2, this.getZ());
+        // 1. On regarde quel siège le joueur a choisi
+        String targetSlotId = this.passengerSeats.get(passenger.getUUID());
+
+        // 2. SÉCURITÉ : S'il est monté en cliquant sur la carrosserie sans viser un
+        // siège précis,
+        // on lui assigne automatiquement le premier siège libre !
+        if (targetSlotId == null) {
+            for (PartSlot slot : this.getPartSlots()) {
+                if (slot.getId().startsWith("seat") && slot.isSecured() && !isSeatOccupied(slot.getId())) {
+                    targetSlotId = slot.getId();
+                    assignSeat(passenger, targetSlotId);
+                    break;
+                }
+            }
+        }
+
+        PartSlot seatSlot = targetSlotId != null ? this.getSlot(targetSlotId) : null;
+
+        // 3. On asseoit le joueur aux coordonnées 3D de son siège
+        if (seatSlot != null && seatSlot.isSecured()) {
+            Vec3 offset = seatSlot.getOffset();
+            float yaw = this.getYRot() * ((float) Math.PI / 180F);
+
+            double rotatedX = offset.x * Math.cos(-yaw) - offset.z * Math.sin(-yaw);
+            double rotatedZ = offset.x * Math.sin(-yaw) + offset.z * Math.cos(-yaw);
+
+            callback.accept(passenger, this.getX() + rotatedX, this.getY() + offset.y + 0.3, this.getZ() + rotatedZ);
+        } else {
+            super.positionRider(passenger, callback);
         }
     }
 
-    @Nullable
     @Override
+    @Nullable
     public LivingEntity getControllingPassenger() {
-        // Le jeu a besoin de savoir qui conduit. C'est le premier passager.
-        Entity entity = this.getFirstPassenger();
-        return entity instanceof LivingEntity living ? living : null;
+        // Vérifier si le siège conducteur est fixé
+        boolean isSeatSecured;
+        if (this.level().isClientSide()) {
+            // Côté CLIENT : les PartSlot ne sont jamais mis à jour, on lit le CompoundTag
+            // synchronisé
+            CompoundTag syncedParts = this.entityData.get(PARTS_SYNC);
+            isSeatSecured = syncedParts.getBoolean("seat_driver_secured");
+        } else {
+            // Côté SERVEUR : on lit le vrai objet PartSlot
+            PartSlot driverSlot = this.getSlot("seat_driver");
+            isSeatSecured = driverSlot != null && driverSlot.isSecured();
+        }
+
+        if (!isSeatSecured) {
+            return null;
+        }
+
+        if (this.level().isClientSide()) {
+            // Côté CLIENT : passengerSeats n'est pas synchronisé, on prend le premier
+            // passager
+            Entity first = this.getFirstPassenger();
+            return first instanceof LivingEntity living ? living : null;
+        }
+
+        // Côté SERVEUR : on cherche le passager assigné au "seat_driver"
+        for (Entity passenger : this.getPassengers()) {
+            if ("seat_driver".equals(this.passengerSeats.get(passenger.getUUID()))) {
+                return passenger instanceof LivingEntity living ? living : null;
+            }
+        }
+        return null;
+    }
+
+    @Override
+    protected boolean canAddPassenger(Entity passenger) {
+        int availableSeats = 0;
+
+        // On compte chaque emplacement qui commence par "seat" et qui est vissé
+        for (fr.frankulinn.vehiclemod.entity.parts.PartSlot slot : this.getPartSlots()) {
+            if (slot.getId().startsWith("seat") && slot.isSecured()) {
+                availableSeats++;
+            }
+        }
+
+        // Autorisé seulement s'il reste une place assise
+        return this.getPassengers().size() < availableSeats;
     }
 
     // Le cache obligatoire pour GeckoLib
@@ -418,7 +518,8 @@ public abstract class BaseVehicleEntity extends Entity implements GeoEntity {
 
     // Coupe le son des bruits de pas de l'entité
     @Override
-    protected void playStepSound(net.minecraft.core.BlockPos pos, net.minecraft.world.level.block.state.BlockState blockIn) {
+    protected void playStepSound(net.minecraft.core.BlockPos pos,
+            net.minecraft.world.level.block.state.BlockState blockIn) {
         // En laissant cette méthode vide, la voiture devient silencieuse.
         // Plus tard, on mettra le bruit de roulement des pneus sur l'asphalte ici !
     }
@@ -440,7 +541,5 @@ public abstract class BaseVehicleEntity extends Entity implements GeoEntity {
     public float maxUpStep() {
         return 1.0f;
     }
-
-
 
 }

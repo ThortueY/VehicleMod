@@ -28,5 +28,6 @@ public class KartEntity extends BaseVehicleEntity {
 
         // La Trappe à Essence
         this.addSlot("fuel_cap", new PartSlot("fuel_cap", new Vec3(0.8, 0.5, -1.0), 0.4f, 0.4f, new FuelCapInteraction(), PartCategory.FUEL_CAP));
-    }
+
+        this.addSlot("seat_driver", new PartSlot("seat_driver", new Vec3(0.0, 0.4, 0.0), 0.6f, 0.6f, new fr.frankulinn.vehiclemod.entity.parts.SlotInteractions.SeatInteraction(), PartCategory.GENERIC_SEAT));    }
 }

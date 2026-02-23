@@ -40,19 +40,4 @@ public class VehicleChassisModel extends GeoModel<BaseVehicleEntity> {
             steeringWheel.setRotZ(steeringRadians);
         }
     }
-
-
-    // Méthode utilitaire pour gérer toutes les roues facilement
-    private void updateWheelVisibility(String bonePrefix, String activeWheelType) {
-        // Liste de toutes tes roues modélisées dans Blockbench
-        String[] allWheelTypes = {"offroad", "kart", "bike"};
-
-        for (String type : allWheelTypes) {
-            GeoBone wheelVariantBone = this.getAnimationProcessor().getBone(bonePrefix + "_" + type);
-            if (wheelVariantBone != null) {
-                // Si le type correspond à la roue installée, on l'affiche (hidden = false), sinon on cache (hidden = true)
-                wheelVariantBone.setHidden(!type.equals(activeWheelType));
-            }
-        }
-    }
 }

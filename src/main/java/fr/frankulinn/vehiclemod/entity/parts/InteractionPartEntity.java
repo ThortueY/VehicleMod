@@ -1,9 +1,6 @@
 package fr.frankulinn.vehiclemod.entity.parts;
 
 import fr.frankulinn.vehiclemod.entity.BaseVehicleEntity;
-import fr.frankulinn.vehiclemod.item.EngineItem;
-import fr.frankulinn.vehiclemod.item.WheelItem;
-import fr.frankulinn.vehiclemod.item.WrenchItem;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.world.InteractionHand;
@@ -13,9 +10,7 @@ import net.minecraft.world.entity.EntityDimensions;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Pose;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
 public class InteractionPartEntity extends Entity {
@@ -40,7 +35,8 @@ public class InteractionPartEntity extends Entity {
         this.offset = offset;
         this.customWidth = width;
         this.customHeight = height;
-        // On force Minecraft à recalculer la boîte de collision de l'entité avec NOS tailles !
+        // On force Minecraft à recalculer la boîte de collision de l'entité avec NOS
+        // tailles !
         this.refreshDimensions();
     }
 
@@ -72,13 +68,16 @@ public class InteractionPartEntity extends Entity {
             return InteractionResult.SUCCESS;
         }
 
-        if (this.parentVehicle == null) return InteractionResult.PASS;
+        if (this.parentVehicle == null)
+            return InteractionResult.PASS;
 
         fr.frankulinn.vehiclemod.entity.parts.PartSlot slot = this.parentVehicle.getSlot(this.slotId);
-        if (slot == null) return InteractionResult.PASS;
+        if (slot == null)
+            return InteractionResult.PASS;
 
         // 🔥 LA MAGIE DU POLYMORPHISME 🔥
-        // L'entité ne sait pas ce qu'elle est. Elle demande juste au comportement de s'exécuter.
+        // L'entité ne sait pas ce qu'elle est. Elle demande juste au comportement de
+        // s'exécuter.
         if (slot.getInteractionBehavior() != null) {
             return slot.getInteractionBehavior().onInteract(player, hand, slot, this.parentVehicle);
         }

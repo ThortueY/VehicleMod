@@ -14,6 +14,9 @@ public enum PartCategory {
     SPORT_ENGINE,
     TRUCK_ENGINE,
 
+    //Seats
+    GENERIC_SEAT,
+
     // Divers (tu pourras en ajouter d'autres plus tard)
     FUEL_CAP,
     GENERIC_PART

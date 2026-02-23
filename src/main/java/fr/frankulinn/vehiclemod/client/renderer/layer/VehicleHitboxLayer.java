@@ -4,10 +4,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import fr.frankulinn.vehiclemod.entity.BaseVehicleEntity;
 import fr.frankulinn.vehiclemod.entity.parts.PartSlot;
-import fr.frankulinn.vehiclemod.item.EngineItem;
-import fr.frankulinn.vehiclemod.item.JerricanItem;
-import fr.frankulinn.vehiclemod.item.WheelItem;
-import fr.frankulinn.vehiclemod.item.WrenchItem;
+import fr.frankulinn.vehiclemod.item.*;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -28,25 +25,32 @@ public class VehicleHitboxLayer extends GeoRenderLayer<BaseVehicleEntity> {
     }
 
     @Override
-    public void render(PoseStack poseStack, BaseVehicleEntity animatable, BakedGeoModel bakedModel, RenderType renderType, MultiBufferSource bufferSource, VertexConsumer buffer, float partialTick, int packedLight, int packedOverlay) {
+    public void render(PoseStack poseStack, BaseVehicleEntity animatable, BakedGeoModel bakedModel,
+            RenderType renderType, MultiBufferSource bufferSource, VertexConsumer buffer, float partialTick,
+            int packedLight, int packedOverlay) {
 
         Player player = Minecraft.getInstance().player;
-        if (player == null) return;
+        if (player == null)
+            return;
 
         // 1. On ne dessine que si le joueur est proche (ex: à moins de 6 blocs)
-        if (player.distanceToSqr(animatable) > 36.0) return;
+        if (player.distanceToSqr(animatable) > 36.0)
+            return;
 
         ItemStack heldItem = player.getMainHandItem();
-        if (heldItem.isEmpty()) return;
+        if (heldItem.isEmpty())
+            return;
 
         Item item = heldItem.getItem();
         boolean isEngine = item instanceof EngineItem;
         boolean isWheel = item instanceof WheelItem;
         boolean isWrench = item instanceof WrenchItem;
         boolean isJerrican = item instanceof JerricanItem;
+        boolean isSeat = item instanceof SeatItem;
 
         // Si on ne tient rien qui a un rapport avec la voiture, on arrête là
-        if (!isEngine && !isWheel && !isWrench && !isJerrican) return;
+        if (!isEngine && !isWheel && !isWrench && !isJerrican && !isSeat)
+            return;
 
         // On prépare le pinceau pour dessiner des lignes
         VertexConsumer lineBuffer = bufferSource.getBuffer(RenderType.lines());
@@ -58,12 +62,15 @@ public class VehicleHitboxLayer extends GeoRenderLayer<BaseVehicleEntity> {
 
             // 3. LOGIQUE D'AFFICHAGE SELON L'ITEM ET L'ÉTAT DU SLOT
             if (slot.isEmpty()) {
+
                 // Si on tient une Roue
                 if (isWheel && slot.getId().startsWith("wheel_")) {
                     shouldHighlight = true;
                     WheelItem wheelHeld = (WheelItem) item;
                     if (wheelHeld.getPartCategory() != slot.getAllowedCategory()) {
-                        r = 1f; g = 0f; b = 0f; // ROUGE ! (Mauvaise catégorie)
+                        r = 1f;
+                        g = 0f;
+                        b = 0f; // ROUGE ! (Mauvaise catégorie)
                     }
                 }
                 // Si on tient un Moteur
@@ -71,23 +78,39 @@ public class VehicleHitboxLayer extends GeoRenderLayer<BaseVehicleEntity> {
                     shouldHighlight = true;
                     EngineItem engineHeld = (EngineItem) item;
                     if (engineHeld.getPartCategory() != slot.getAllowedCategory()) {
-                        r = 1f; g = 0f; b = 0f; // ROUGE ! (Mauvaise catégorie)
+                        r = 1f;
+                        g = 0f;
+                        b = 0f; // ROUGE ! (Mauvaise catégorie)
+                    }
+                } else if (isSeat && slot.getId().startsWith("seat_")) {
+                    shouldHighlight = true;
+                    SeatItem seatHeld = (SeatItem) item;
+                    if (seatHeld.getCategory() != slot.getAllowedCategory()) {
+                        r = 1f;
+                        g = 0f;
+                        b = 0f; // ROUGE ! (Mauvaise catégorie)
                     }
                 }
             } else {
                 // Logique de la clé à molette (inchangée)
                 if (isWrench && !slot.isSecured()) {
                     shouldHighlight = true;
-                    r = 1f; g = 1f; b = 0f; // Jaune
+                    r = 1f;
+                    g = 1f;
+                    b = 0f; // Jaune
                 } else if (isWrench && slot.isSecured()) {
                     shouldHighlight = true;
-                    r = 1f; g = 0.5f; b = 0f; // Orange
+                    r = 1f;
+                    g = 0.5f;
+                    b = 0f; // Orange
                 }
             }
 
             if (isJerrican && slot.getId().equals("fuel_cap")) {
                 shouldHighlight = true;
-                r = 0f; g = 1f; b = 1f; // Cyan (Trappe à essence)
+                r = 0f;
+                g = 1f;
+                b = 1f; // Cyan (Trappe à essence)
             }
 
             // 4. LE DESSIN DU CARRÉ

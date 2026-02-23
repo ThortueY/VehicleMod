@@ -1,8 +1,8 @@
 package fr.frankulinn.vehiclemod.entity.parts;
 
 import fr.frankulinn.vehiclemod.item.EngineItem;
+import fr.frankulinn.vehiclemod.item.SeatItem;
 import fr.frankulinn.vehiclemod.item.WheelItem;
-import fr.frankulinn.vehiclemod.registers.ModItems;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
@@ -20,7 +20,8 @@ public class PartSlot {
     private final SlotInteraction interactionBehavior;
     private final PartCategory allowedCategory;
 
-    public PartSlot(String id, Vec3 offset, float hitboxWidth, float hitboxHeight, SlotInteraction interactionBehavior, PartCategory allowedCategory) {
+    public PartSlot(String id, Vec3 offset, float hitboxWidth, float hitboxHeight, SlotInteraction interactionBehavior,
+            PartCategory allowedCategory) {
         this.slotId = id;
         this.offset = offset;
         this.state = PartState.EMPTY;
@@ -73,8 +74,13 @@ public class PartSlot {
         return false;
     }
 
-    public float getHitboxWidth() { return this.hitboxWidth; }
-    public float getHitboxHeight() { return this.hitboxHeight; }
+    public float getHitboxWidth() {
+        return this.hitboxWidth;
+    }
+
+    public float getHitboxHeight() {
+        return this.hitboxHeight;
+    }
 
     public boolean isSecured() {
         return this.state == PartState.SECURED;
@@ -103,8 +109,8 @@ public class PartSlot {
         if (this.installedPart != null) {
             CompoundTag partTag = new CompoundTag();
 
-            partTag.putString("id",  installedPart.getId()); //Sauvegarde l'ID de l'item
-            partTag.putFloat("Condition", this.installedPart.getCondition()); //Sauvegarde son état
+            partTag.putString("id", installedPart.getId()); // Sauvegarde l'ID de l'item
+            partTag.putFloat("Condition", this.installedPart.getCondition()); // Sauvegarde son état
             tag.put("Part", partTag);
         }
         return tag;
@@ -122,25 +128,28 @@ public class PartSlot {
             float weight = partTag.getFloat("Weight");
             float condition = partTag.getFloat("Condition");
             String id = partTag.getString("id");
-            Item registredPartItem = BuiltInRegistries.ITEM.get(ResourceLocation.fromNamespaceAndPath("vehiclemod", id));
+            Item registredPartItem = BuiltInRegistries.ITEM
+                    .get(ResourceLocation.fromNamespaceAndPath("vehiclemod", id));
 
             if (registredPartItem instanceof EngineItem engineItem) {
                 this.installedPart = engineItem.createPart();
             }
 
-            if(registredPartItem instanceof WheelItem wheelItem) {
+            if (registredPartItem instanceof WheelItem wheelItem) {
                 this.installedPart = wheelItem.createPart();
+            }
+            if (registredPartItem instanceof SeatItem seatItem) {
+                this.installedPart = seatItem.createPart();
             }
             if (this.installedPart != null) {
                 this.installedPart.setCondition(condition);
             }
 
-            } else {
+        } else {
             this.installedPart = null;
             this.state = PartState.EMPTY;
         }
 
-
-        }
+    }
 
 }

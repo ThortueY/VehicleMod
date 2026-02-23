@@ -3,6 +3,7 @@ package fr.frankulinn.vehiclemod.client.renderer.layer;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import fr.frankulinn.vehiclemod.client.model.EngineModel;
+import fr.frankulinn.vehiclemod.client.model.SeatModel;
 import fr.frankulinn.vehiclemod.client.model.WheelModel;
 import fr.frankulinn.vehiclemod.entity.BaseVehicleEntity;
 import fr.frankulinn.vehiclemod.entity.parts.PartSlot;
@@ -19,6 +20,7 @@ public class VehiclePartsLayer extends GeoRenderLayer<BaseVehicleEntity> {
     // On instancie le modèle du moteur pour pouvoir le dessiner
     private final EngineModel engineModel = new EngineModel();
     private final WheelModel wheelModel = new WheelModel();
+    private final SeatModel seatModel = new SeatModel();
 
     public VehiclePartsLayer(GeoEntityRenderer<BaseVehicleEntity> entityRendererIn) {
         super(entityRendererIn);
@@ -26,106 +28,70 @@ public class VehiclePartsLayer extends GeoRenderLayer<BaseVehicleEntity> {
 
     @Override
     public void render(PoseStack poseStack, BaseVehicleEntity animatable, BakedGeoModel bakedModel, RenderType renderType,
-            MultiBufferSource bufferSource, VertexConsumer buffer, float partialTick, int packedLight,
-            int packedOverlay) {
+                       MultiBufferSource bufferSource, VertexConsumer buffer, float partialTick, int packedLight, int packedOverlay) {
 
-        // --- 1. RENDU DU MOTEUR ---
-        if (animatable.getEntityData().get(BaseVehicleEntity.HAS_ENGINE)) {
+        // 1. On récupère notre dictionnaire de pièces envoyé par le serveur
+        net.minecraft.nbt.CompoundTag syncedParts = animatable.getEntityData().get(BaseVehicleEntity.PARTS_SYNC);
 
-            PartSlot engineSlot = animatable.getSlot("engine_bay");
+        // 2. On boucle sur tous les slots prévus par le véhicule
+        for (PartSlot slot : animatable.getPartSlots()) {
 
-            if (engineSlot != null && engineSlot.getOffset() != null) {
-                Vec3 offset = engineSlot.getOffset();
+            // On regarde si le dictionnaire contient une pièce pour ce slot
+            String modelId = syncedParts.getString(slot.getId());
 
-                poseStack.pushPose();
+            // Si la chaîne est vide ou vaut "none", ça veut dire qu'il n'y a rien de posé ici.
+            if (modelId.isEmpty() || modelId.equals("none")) continue;
 
-                poseStack.translate(offset.x, offset.y, offset.z);
+            poseStack.pushPose();
+            Vec3 offset = slot.getOffset();
 
-                this.engineModel.setEngineId(animatable.getEntityData().get(BaseVehicleEntity.ENGINE));
-                BakedGeoModel bakedEngineModel = this.engineModel
-                        .getBakedModel(this.engineModel.getModelResource(animatable));
-                RenderType engineRenderType = RenderType
-                        .entityCutoutNoCull(this.engineModel.getTextureResource(animatable));
-                VertexConsumer engineBuffer = bufferSource.getBuffer(engineRenderType);
+            // On place le "pinceau" à l'endroit du slot
+            poseStack.translate(offset.x, offset.y, offset.z);
 
-                this.getRenderer().reRender(bakedEngineModel, poseStack, bufferSource, animatable, engineRenderType,
-                        engineBuffer, partialTick, packedLight, packedOverlay, 0xFFFFFFFF);
+            // --- SI C'EST UNE ROUE ---
+            if (slot.getId().startsWith("wheel")) {
 
-                poseStack.popPose();
-            }
-        } // <-- L'ACCOLADE DU MOTEUR SE FERME ICI
-
-        // --- 2. RENDU DES ROUES ---
-        // Elles sont maintenant indépendantes du moteur !
-        renderWheel(poseStack, animatable, bufferSource, partialTick, packedLight, packedOverlay, "wheel_front_left",
-                BaseVehicleEntity.WHEEL_FL);
-        renderWheel(poseStack, animatable, bufferSource, partialTick, packedLight, packedOverlay, "wheel_front_right",
-                BaseVehicleEntity.WHEEL_FR);
-        renderWheel(poseStack, animatable, bufferSource, partialTick, packedLight, packedOverlay, "wheel_back_left",
-                BaseVehicleEntity.WHEEL_BL);
-        renderWheel(poseStack, animatable, bufferSource, partialTick, packedLight, packedOverlay, "wheel_back_right",
-                BaseVehicleEntity.WHEEL_BR);
-    }
-
-    private void renderWheel(PoseStack poseStack, BaseVehicleEntity animatable, MultiBufferSource bufferSource,
-            float partialTick, int packedLight, int packedOverlay, String slotId,
-            EntityDataAccessor<String> dataAccessor) {
-
-        String wheelType = animatable.getEntityData().get(dataAccessor);
-
-        if (!wheelType.equals("none")) {
-            PartSlot slot = animatable.getSlot(slotId);
-
-            if (slot != null && slot.getOffset() != null) {
-                Vec3 offset = slot.getOffset();
-
-                poseStack.pushPose();
-
-                // Le centre de la roue est maintenant à l'origine du modèle (Y=0)
-                // grâce au recentrage de kart_wheel.geo.json
-                float pivotX = 0.0f;
-                float pivotY = 0.0f;
-                float pivotZ = 0.0f;
-
-                // 1. On déplace le pinceau à la position du slot
-                // Le root bone du châssis a rotation Y=180°, ce qui inverse X et Z
-                poseStack.translate(offset.x, offset.y, offset.z);
-
-                float currentSteering = net.minecraft.util.Mth.lerp(partialTick, animatable.prevSteeringAngle,
-                        animatable.steeringAngle);
-                float currentWheelRot = net.minecraft.util.Mth.lerp(partialTick, animatable.prevWheelRotation,
-                        animatable.wheelRotation);
-
-                // On se déplace SUR le point de pivot de la roue avant de la tourner
-                poseStack.translate(pivotX, pivotY, pivotZ);
-
-                // 2. LE BRAQUAGE (Roues avant)
-                if (slotId.contains("front")) {
+                // Le braquage (Roues avant)
+                if (slot.getId().contains("front")) {
+                    float currentSteering = net.minecraft.util.Mth.lerp(partialTick, animatable.prevSteeringAngle, animatable.steeringAngle);
                     poseStack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(-currentSteering));
                 }
 
-                // 3. LA ROTATION ET L'INVERSION DROITE/GAUCHE
+                // La rotation pour avancer et l'inversion Droite/Gauche
+                float currentWheelRot = net.minecraft.util.Mth.lerp(partialTick, animatable.prevWheelRotation, animatable.wheelRotation);
+                float currentWheelRotDegrees = currentWheelRot * (180F / (float)Math.PI);
+
                 if (offset.x < 0) {
                     poseStack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(180f));
-                    poseStack.mulPose(com.mojang.math.Axis.XP.rotation(-currentWheelRot));
+                    poseStack.mulPose(com.mojang.math.Axis.XP.rotationDegrees(-currentWheelRotDegrees)); // Utilise la valeur convertie !
                 } else {
-                    poseStack.mulPose(com.mojang.math.Axis.XP.rotation(currentWheelRot));
+                    poseStack.mulPose(com.mojang.math.Axis.XP.rotationDegrees(currentWheelRotDegrees));  // Utilise la valeur convertie !
                 }
 
-                // On revient en arrière après avoir tourné le pinceau !
-                poseStack.translate(-pivotX, -pivotY, -pivotZ);
-
-                // 4. On dessine !
-                this.wheelModel.setWheelType(wheelType);
-                BakedGeoModel bakedModel = this.wheelModel.getBakedModel(this.wheelModel.getModelResource(animatable));
-                RenderType renderType = RenderType.entityCutoutNoCull(this.wheelModel.getTextureResource(animatable));
-                VertexConsumer buffer = bufferSource.getBuffer(renderType);
-
-                this.getRenderer().reRender(bakedModel, poseStack, bufferSource, animatable, renderType, buffer,
-                        partialTick, packedLight, packedOverlay, 0xFFFFFFFF);
-
-                poseStack.popPose();
+                // On dessine la roue
+                this.wheelModel.setWheelType(modelId);
+                BakedGeoModel wheelBaked = this.wheelModel.getBakedModel(this.wheelModel.getModelResource(animatable));
+                RenderType rtWheel = RenderType.entityCutoutNoCull(this.wheelModel.getTextureResource(animatable));
+                this.getRenderer().reRender(wheelBaked, poseStack, bufferSource, animatable, rtWheel, bufferSource.getBuffer(rtWheel), partialTick, packedLight, packedOverlay, 0xFFFFFFFF);
             }
+
+            // --- SI C'EST UN MOTEUR ---
+            else if (slot.getId().startsWith("engine")) {
+                this.engineModel.setEngineId(modelId);
+                BakedGeoModel engineBaked = this.engineModel.getBakedModel(this.engineModel.getModelResource(animatable));
+                RenderType rtEngine = RenderType.entityCutoutNoCull(this.engineModel.getTextureResource(animatable));
+                this.getRenderer().reRender(engineBaked, poseStack, bufferSource, animatable, rtEngine, bufferSource.getBuffer(rtEngine), partialTick, packedLight, packedOverlay, 0xFFFFFFFF);
+            }
+
+            // --- SI C'EST UN SIÈGE ---
+            else if (slot.getId().startsWith("seat")) {
+                this.seatModel.setSeatId(modelId);
+                BakedGeoModel seatBaked = this.seatModel.getBakedModel(this.seatModel.getModelResource(animatable));
+                RenderType rtSeat = RenderType.entityCutoutNoCull(this.seatModel.getTextureResource(animatable));
+                this.getRenderer().reRender(seatBaked, poseStack, bufferSource, animatable, rtSeat, bufferSource.getBuffer(rtSeat), partialTick, packedLight, packedOverlay, 0xFFFFFFFF);
+            }
+
+            poseStack.popPose();
         }
     }
 
