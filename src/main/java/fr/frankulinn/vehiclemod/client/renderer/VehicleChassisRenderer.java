@@ -38,12 +38,14 @@ public class VehicleChassisRenderer extends GeoEntityRenderer<BaseVehicleEntity>
         // 3. On tourne TOUT l'espace de rendu (Châssis + Pièces)
         poseStack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(-lerpYaw));
 
-        // 4. INCLINAISON SUR LES PENTES : interpolation fluide du pitch
+        // 4. INCLINAISON SUR LES PENTES : interpolation fluide du pitch + roll
         float lerpPitch = Mth.lerp(partialTick, entity.prevVehiclePitch, entity.getVehiclePitch());
         poseStack.mulPose(com.mojang.math.Axis.XP.rotationDegrees(-lerpPitch));
 
-        // 5. On laisse GeckoLib dessiner la voiture dans cet espace maintenant tourné +
-        // incliné
+        float lerpRoll = Mth.lerp(partialTick, entity.prevVehicleRoll, entity.getVehicleRoll());
+        poseStack.mulPose(com.mojang.math.Axis.ZP.rotationDegrees(lerpRoll));
+
+        // 5. On laisse GeckoLib dessiner la voiture dans cet espace tourné + incliné
         super.render(entity, entityYaw, partialTick, poseStack, bufferSource, packedLight);
 
         // 6. On restaure la caméra pour ne pas faire tourner tout le reste du jeu !

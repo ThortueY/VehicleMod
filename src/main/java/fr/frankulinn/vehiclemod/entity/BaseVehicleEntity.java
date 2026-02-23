@@ -36,6 +36,8 @@ public abstract class BaseVehicleEntity extends Entity implements GeoEntity {
             EntityDataSerializers.FLOAT);
     public static final EntityDataAccessor<Float> VEHICLE_PITCH = SynchedEntityData.defineId(BaseVehicleEntity.class,
             EntityDataSerializers.FLOAT);
+    public static final EntityDataAccessor<Float> VEHICLE_ROLL = SynchedEntityData.defineId(BaseVehicleEntity.class,
+            EntityDataSerializers.FLOAT);
     public static final float MAX_FUEL = 100.0f; // La capacité maximum du réservoir
 
     // Slots pour les pièces de véhicule
@@ -49,6 +51,7 @@ public abstract class BaseVehicleEntity extends Entity implements GeoEntity {
     public float steeringAngle = 0.0f;
     public float prevSteeringAngle = 0.0f;
     public float prevVehiclePitch = 0.0f;
+    public float prevVehicleRoll = 0.0f;
 
     private final java.util.Map<java.util.UUID, String> passengerSeats = new java.util.HashMap<>();
 
@@ -259,45 +262,57 @@ public abstract class BaseVehicleEntity extends Entity implements GeoEntity {
         this.move(net.minecraft.world.entity.MoverType.SELF, this.getDeltaMovement());
     }
 
-    // --- INCLINAISON DU VÉHICULE SUR LES PENTES ---
+    // --- INCLINAISON DU VÉHICULE SUR LES PENTES (PITCH + ROLL) ---
     private void updatePitch() {
         if (this.level().isClientSide()) {
-            // Côté client, on sauvegarde le pitch précédent pour l'interpolation
+            // Côté client, on sauvegarde les valeurs précédentes pour l'interpolation
             this.prevVehiclePitch = this.entityData.get(VEHICLE_PITCH);
+            this.prevVehicleRoll = this.entityData.get(VEHICLE_ROLL);
             return;
         }
 
-        // Distance entre l'avant et l'arrière du véhicule (en blocs)
-        float halfLength = 1.2f;
-
-        // Direction avant du véhicule
         float yawRad = this.getYRot() * ((float) Math.PI / 180F);
+
+        // === PITCH (avant/arrière) ===
+        float halfLength = 1.2f;
         double frontX = this.getX() + (-Math.sin(yawRad) * halfLength);
         double frontZ = this.getZ() + (Math.cos(yawRad) * halfLength);
         double backX = this.getX() + (Math.sin(yawRad) * halfLength);
         double backZ = this.getZ() + (-Math.cos(yawRad) * halfLength);
 
-        // Échantillonner la hauteur du sol à l'avant et à l'arrière
         double frontGroundY = getGroundHeight(frontX, this.getY(), frontZ);
         double backGroundY = getGroundHeight(backX, this.getY(), backZ);
 
-        // Calculer le pitch
-        double deltaY = frontGroundY - backGroundY;
-        double distance = halfLength * 2.0;
-        float targetPitch = (float) Math.toDegrees(Math.atan2(deltaY, distance));
-
-        // Limiter le pitch à ±30 degrés
+        float targetPitch = (float) Math.toDegrees(Math.atan2(frontGroundY - backGroundY, halfLength * 2.0));
         targetPitch = net.minecraft.util.Mth.clamp(targetPitch, -30.0f, 30.0f);
 
-        // Lissage progressif pour éviter les saccades
         float currentPitch = this.entityData.get(VEHICLE_PITCH);
-        float smoothedPitch = currentPitch + (targetPitch - currentPitch) * 0.3f;
+        this.entityData.set(VEHICLE_PITCH, currentPitch + (targetPitch - currentPitch) * 0.3f);
 
-        this.entityData.set(VEHICLE_PITCH, smoothedPitch);
+        // === ROLL (gauche/droite) ===
+        float halfWidth = 0.8f;
+        // Direction perpendiculaire (90° à droite du véhicule)
+        double rightX = this.getX() + (Math.cos(yawRad) * halfWidth);
+        double rightZ = this.getZ() + (Math.sin(yawRad) * halfWidth);
+        double leftX = this.getX() + (-Math.cos(yawRad) * halfWidth);
+        double leftZ = this.getZ() + (-Math.sin(yawRad) * halfWidth);
+
+        double rightGroundY = getGroundHeight(rightX, this.getY(), rightZ);
+        double leftGroundY = getGroundHeight(leftX, this.getY(), leftZ);
+
+        float targetRoll = (float) Math.toDegrees(Math.atan2(rightGroundY - leftGroundY, halfWidth * 2.0));
+        targetRoll = net.minecraft.util.Mth.clamp(targetRoll, -20.0f, 20.0f);
+
+        float currentRoll = this.entityData.get(VEHICLE_ROLL);
+        this.entityData.set(VEHICLE_ROLL, currentRoll + (targetRoll - currentRoll) * 0.3f);
     }
 
     public float getVehiclePitch() {
         return this.entityData.get(VEHICLE_PITCH);
+    }
+
+    public float getVehicleRoll() {
+        return this.entityData.get(VEHICLE_ROLL);
     }
 
     private double getGroundHeight(double x, double entityY, double z) {
@@ -344,6 +359,7 @@ public abstract class BaseVehicleEntity extends Entity implements GeoEntity {
         builder.define(PARTS_SYNC, new CompoundTag());
         builder.define(FUEL_LEVEL, 0.0f);
         builder.define(VEHICLE_PITCH, 0.0f);
+        builder.define(VEHICLE_ROLL, 0.0f);
     }
 
     // Mise à jour des variables dans l'entité
