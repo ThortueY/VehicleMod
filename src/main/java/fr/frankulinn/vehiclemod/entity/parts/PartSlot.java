@@ -124,8 +124,6 @@ public class PartSlot {
 
         if (tag.contains("Part")) {
             CompoundTag partTag = tag.getCompound("Part");
-            String type = partTag.getString("Type");
-            float weight = partTag.getFloat("Weight");
             float condition = partTag.getFloat("Condition");
             String id = partTag.getString("id");
             Item registredPartItem = BuiltInRegistries.ITEM

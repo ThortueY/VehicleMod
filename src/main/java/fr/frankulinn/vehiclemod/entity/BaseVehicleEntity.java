@@ -2,20 +2,16 @@ package fr.frankulinn.vehiclemod.entity;
 
 import fr.frankulinn.vehiclemod.entity.parts.InteractionPartEntity;
 import fr.frankulinn.vehiclemod.entity.parts.PartSlot;
-import fr.frankulinn.vehiclemod.item.JerricanItem;
 import fr.frankulinn.vehiclemod.registers.ModEntities;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.syncher.SynchedEntityData;
-import net.minecraft.sounds.SoundEvents;
-import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
@@ -397,20 +393,6 @@ public abstract class BaseVehicleEntity extends Entity implements GeoEntity {
         }
 
         this.entityData.set(PARTS_SYNC, syncTag);
-    }
-
-    private String getWheelTypeAt(String slotId) {
-        PartSlot slot = this.getSlot(slotId);
-        if (slot != null && slot.getPart() instanceof fr.frankulinn.vehiclemod.entity.parts.WheelPart wheel) {
-            return wheel.getId();
-        }
-        return "none";
-    }
-
-    private boolean isWheelSecured(String slotId) {
-        PartSlot slot = this.getSlot(slotId);
-        return slot != null && slot.isSecured()
-                && slot.getPart() instanceof fr.frankulinn.vehiclemod.entity.parts.WheelPart;
     }
 
     // Empêche les autres entités (et ses propres composants) de pousser la voiture
