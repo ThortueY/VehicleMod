@@ -20,6 +20,7 @@ public class InteractionPartEntity extends Entity {
     private Vec3 offset = Vec3.ZERO;
     private float customWidth = 0.5f;
     private float customHeight = 0.5f;
+    private long lastInteractTime = 0;
 
     // Constructeur obligatoire pour le registre NeoForge
     public InteractionPartEntity(EntityType<?> type, Level level) {
@@ -64,6 +65,14 @@ public class InteractionPartEntity extends Entity {
 
     @Override
     public InteractionResult interact(Player player, InteractionHand hand) {
+        long currentTime = this.level().getGameTime();
+
+        if (currentTime - this.lastInteractTime < 5) {
+            return InteractionResult.PASS;
+        }
+
+        this.lastInteractTime = currentTime;
+
         if (this.parentVehicle == null)
             return InteractionResult.PASS;
 

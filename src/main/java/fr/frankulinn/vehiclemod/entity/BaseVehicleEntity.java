@@ -494,20 +494,6 @@ public abstract class BaseVehicleEntity extends Entity implements GeoEntity {
             }
         }
 
-        // --- 3. CLIC SUR LA CARROSSERIE GLOBALE ---
-        // Si on a cliqué à côté des sièges ou si on a les mains vides, on tente de
-        // monter automatiquement
-        if (!this.level().isClientSide() && player.getVehicle() == null && player.getItemInHand(hand).isEmpty()) {
-            for (PartSlot slot : this.getPartSlots()) {
-                if (slot.getId().startsWith("seat") && slot.isSecured() && isSeatNotOccupied(slot.getId())) {
-                    assignSeat(player, slot.getId());
-                    player.startRiding(this);
-                    return InteractionResult.SUCCESS;
-                }
-            }
-            return InteractionResult.PASS; // Pas de siège libre
-        }
-
         return super.interact(player, hand);
     }
 
