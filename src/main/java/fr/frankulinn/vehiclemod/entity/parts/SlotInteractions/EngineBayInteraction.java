@@ -20,54 +20,74 @@ public class EngineBayInteraction implements SlotInteraction {
         // 1. SI L'EMPLACEMENT EST VIDE
         if (slot.isEmpty()) {
             if (stackInHand.getItem() instanceof EngineItem engineItem) {
-
                 if (engineItem.getPartCategory() != slot.getAllowedCategory()) {
-                    player.displayClientMessage(Component.literal("§cCette roue n'est pas de la bonne taille pour ce véhicule !"), true);
+                    if (!vehicle.level().isClientSide())
+                        player.displayClientMessage(Component.literal("§cCe moteur n'est pas adapté à ce véhicule !"),
+                                true);
                     return InteractionResult.SUCCESS;
                 }
 
                 EnginePart newEngine = engineItem.createPart();
                 if (slot.installPart(newEngine)) {
-                    if (!player.isCreative()) stackInHand.shrink(1);
-                    player.displayClientMessage(Component.literal("§aMoteur posé ! (Non fixé)"), true);
-                    vehicle.updatePartsSync();
-                    return InteractionResult.CONSUME;
+                    if (!player.isCreative())
+                        stackInHand.shrink(1);
+                    if (!vehicle.level().isClientSide()) {
+                        player.displayClientMessage(Component.literal("§aMoteur posé ! (Non fixé)"), true);
+                        vehicle.updatePartsSync();
+                    }
+                    return InteractionResult.sidedSuccess(vehicle.level().isClientSide());
                 }
             } else if (!stackInHand.isEmpty()) {
-                player.displayClientMessage(Component.literal("§cCet emplacement nécessite un Moteur !"), true);
+                if (!vehicle.level().isClientSide())
+                    player.displayClientMessage(Component.literal("§cCet emplacement nécessite un Moteur !"), true);
+                return InteractionResult.SUCCESS;
             }
         }
         // 2. SI LE MOTEUR EST POSÉ MAIS PAS FIXÉ
         else if (!slot.isSecured()) {
             if (stackInHand.getItem() instanceof WrenchItem) {
                 if (slot.securePart()) {
-                    player.displayClientMessage(Component.literal("§aPièce fixée et prête à l'usage !"), true);
-                    vehicle.updatePartsSync();
-                    return InteractionResult.SUCCESS;
+                    if (!vehicle.level().isClientSide()) {
+                        player.displayClientMessage(Component.literal("§aMoteur fixé et prêt à l'usage !"), true);
+                        vehicle.updatePartsSync();
+                    }
+                    return InteractionResult.sidedSuccess(vehicle.level().isClientSide());
                 }
-            } else if (stackInHand.isEmpty()) {
+            }
+            // --- LE FIX EST ICI ---
+            else if (stackInHand.isEmpty() && player.isShiftKeyDown()) {
                 slot.removePart();
-                player.displayClientMessage(Component.literal("§ePièce retirée !"), true);
-                vehicle.updatePartsSync();
-                return InteractionResult.SUCCESS;
+                if (!vehicle.level().isClientSide()) {
+                    player.displayClientMessage(Component.literal("§eMoteur retiré !"), true);
+                    vehicle.updatePartsSync();
+                }
+                return InteractionResult.sidedSuccess(vehicle.level().isClientSide());
             } else {
-                player.displayClientMessage(Component.literal("§cUtilisez une Clé pour fixer, ou les mains vides pour enlever."), true);
+                if (!vehicle.level().isClientSide())
+                    player.displayClientMessage(
+                            Component.literal("§cUtilisez une Clé pour fixer, ou Shift + Mains vides pour enlever."),
+                            true);
+                return InteractionResult.SUCCESS;
             }
         }
         // 3. SI LE MOTEUR EST FIXÉ
         else {
             if (stackInHand.getItem() instanceof WrenchItem) {
                 if (slot.unsecurePart()) {
-                    player.displayClientMessage(Component.literal("§ePièce dévissée."), true);
-                    vehicle.updatePartsSync();
-                    return InteractionResult.SUCCESS;
+                    if (!vehicle.level().isClientSide()) {
+                        player.displayClientMessage(Component.literal("§eMoteur dévissé."), true);
+                        vehicle.updatePartsSync();
+                    }
+                    return InteractionResult.sidedSuccess(vehicle.level().isClientSide());
                 }
             } else {
-                // (Si tu as aussi gardé le système du Jerrican sur le moteur, c'est ici qu'il faudrait l'ajouter !)
-                player.displayClientMessage(Component.literal("§cCette pièce est vissée ! Utilisez une Clé."), true);
+                if (!vehicle.level().isClientSide())
+                    player.displayClientMessage(Component.literal("§cCette pièce est vissée ! Utilisez une Clé."),
+                            true);
+                return InteractionResult.SUCCESS;
             }
         }
 
-        return InteractionResult.SUCCESS;
+        return InteractionResult.PASS;
     }
 }

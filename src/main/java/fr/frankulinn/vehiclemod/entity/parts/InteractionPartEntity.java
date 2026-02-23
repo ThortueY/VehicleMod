@@ -81,20 +81,6 @@ public class InteractionPartEntity extends Entity {
         return InteractionResult.PASS;
     }
 
-    // Petite méthode utilitaire pour traduire les ID techniques en joli texte pour
-    // les joueurs
-    private String getReadableSlotName(String slotId) {
-        return switch (slotId) {
-            case "engine_bay" -> "Baie Moteur";
-            case "wheel_front_left" -> "Roue Avant Gauche";
-            case "wheel_front_right" -> "Roue Avant Droite";
-            case "wheel_back_left" -> "Roue Arrière Gauche";
-            case "wheel_back_right" -> "Roue Arrière Droite";
-            case "fuel_cap" -> "Trappe à Essence";
-            default -> "Pièce Inconnue";
-        };
-    }
-
     @Override
     public boolean isPushable() {
         return false;

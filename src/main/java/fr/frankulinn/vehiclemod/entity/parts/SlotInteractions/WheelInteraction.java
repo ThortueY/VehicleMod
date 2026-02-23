@@ -20,54 +20,74 @@ public class WheelInteraction implements SlotInteraction {
         // 1. SI L'EMPLACEMENT EST VIDE
         if (slot.isEmpty()) {
             if (stackInHand.getItem() instanceof WheelItem wheelItem) {
-
                 if (wheelItem.getPartCategory() != slot.getAllowedCategory()) {
-                    player.displayClientMessage(Component.literal("§cCette roue n'est pas de la bonne taille pour ce véhicule !"), true);
+                    if (!vehicle.level().isClientSide())
+                        player.displayClientMessage(Component.literal("§cCette roue n'est pas adaptée à ce véhicule !"),
+                                true);
                     return InteractionResult.SUCCESS;
                 }
 
                 WheelPart newWheel = wheelItem.createPart();
                 if (slot.installPart(newWheel)) {
-                    if (!player.isCreative()) stackInHand.shrink(1);
-                    player.displayClientMessage(Component.literal("§aRoue posée ! (Non fixée)"), true);
-                    vehicle.updatePartsSync();
-                    return InteractionResult.CONSUME;
+                    if (!player.isCreative())
+                        stackInHand.shrink(1);
+                    if (!vehicle.level().isClientSide()) {
+                        player.displayClientMessage(Component.literal("§aRoue posée ! (Non fixée)"), true);
+                        vehicle.updatePartsSync();
+                    }
+                    return InteractionResult.sidedSuccess(vehicle.level().isClientSide());
                 }
-            } else if (!stackInHand.isEmpty()) { // N'affiche le message d'erreur que si on tient un objet
-                player.displayClientMessage(Component.literal("§cCet emplacement nécessite une Roue !"), true);
+            } else if (!stackInHand.isEmpty()) {
+                if (!vehicle.level().isClientSide())
+                    player.displayClientMessage(Component.literal("§cCet emplacement nécessite une Roue !"), true);
+                return InteractionResult.SUCCESS;
             }
         }
         // 2. SI LA ROUE EST POSÉE MAIS PAS FIXÉE
         else if (!slot.isSecured()) {
             if (stackInHand.getItem() instanceof WrenchItem) {
                 if (slot.securePart()) {
-                    player.displayClientMessage(Component.literal("§aPièce fixée et prête à l'usage !"), true);
-                    vehicle.updatePartsSync();
-                    return InteractionResult.SUCCESS;
+                    if (!vehicle.level().isClientSide()) {
+                        player.displayClientMessage(Component.literal("§aRoue fixée et prête à l'usage !"), true);
+                        vehicle.updatePartsSync();
+                    }
+                    return InteractionResult.sidedSuccess(vehicle.level().isClientSide());
                 }
-            } else if (stackInHand.isEmpty()) {
+            }
+            // --- LE FIX EST ICI : Ajout de player.isShiftKeyDown() ---
+            else if (stackInHand.isEmpty() && player.isShiftKeyDown()) {
                 slot.removePart();
-                // (Ici tu pourras ajouter le code pour redonner l'item Roue au joueur plus tard)
-                player.displayClientMessage(Component.literal("§ePièce retirée !"), true);
-                vehicle.updatePartsSync();
-                return InteractionResult.SUCCESS;
+                if (!vehicle.level().isClientSide()) {
+                    player.displayClientMessage(Component.literal("§eRoue retirée !"), true);
+                    vehicle.updatePartsSync();
+                }
+                return InteractionResult.sidedSuccess(vehicle.level().isClientSide());
             } else {
-                player.displayClientMessage(Component.literal("§cUtilisez une Clé pour fixer, ou les mains vides pour enlever."), true);
+                if (!vehicle.level().isClientSide())
+                    player.displayClientMessage(
+                            Component.literal("§cUtilisez une Clé pour fixer, ou Shift + Mains vides pour enlever."),
+                            true);
+                return InteractionResult.SUCCESS;
             }
         }
         // 3. SI LA ROUE EST FIXÉE
         else {
             if (stackInHand.getItem() instanceof WrenchItem) {
                 if (slot.unsecurePart()) {
-                    player.displayClientMessage(Component.literal("§ePièce dévissée."), true);
-                    vehicle.updatePartsSync();
-                    return InteractionResult.SUCCESS;
+                    if (!vehicle.level().isClientSide()) {
+                        player.displayClientMessage(Component.literal("§eRoue dévissée."), true);
+                        vehicle.updatePartsSync();
+                    }
+                    return InteractionResult.sidedSuccess(vehicle.level().isClientSide());
                 }
             } else {
-                player.displayClientMessage(Component.literal("§cCette pièce est vissée ! Utilisez une Clé."), true);
+                if (!vehicle.level().isClientSide())
+                    player.displayClientMessage(Component.literal("§cCette pièce est vissée ! Utilisez une Clé."),
+                            true);
+                return InteractionResult.SUCCESS;
             }
         }
 
-        return InteractionResult.SUCCESS;
+        return InteractionResult.PASS;
     }
 }

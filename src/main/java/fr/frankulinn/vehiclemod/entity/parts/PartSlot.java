@@ -35,7 +35,7 @@ public class PartSlot {
         return this.allowedCategory;
     }
 
-    public net.minecraft.world.phys.Vec3 getOffset() {
+    public Vec3 getOffset() {
         return this.offset;
     }
 
@@ -67,8 +67,8 @@ public class PartSlot {
     }
 
     public boolean unsecurePart() {
-        if (this.state == fr.frankulinn.vehiclemod.entity.parts.PartState.SECURED) {
-            this.state = fr.frankulinn.vehiclemod.entity.parts.PartState.PLACED;
+        if (this.state == PartState.SECURED) {
+            this.state = PartState.PLACED;
             return true;
         }
         return false;

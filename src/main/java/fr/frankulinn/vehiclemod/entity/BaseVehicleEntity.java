@@ -487,8 +487,44 @@ public abstract class BaseVehicleEntity extends Entity implements GeoEntity {
 
     @Override
     public InteractionResult interact(Player player, InteractionHand hand) {
-        // On ne monte que si un siège fixé est libre
-        if (!this.level().isClientSide() && player.getVehicle() == null) {
+        // --- 1. RAYTRACE INTERNE (PERCER LA GROSSE HITBOX) ---
+        // On récupère la position des yeux du joueur et la direction de son regard
+        Vec3 eyePosition = player.getEyePosition(1.0f);
+        Vec3 lookVector = player.getViewVector(1.0f);
+        Vec3 reachEnd = eyePosition.add(lookVector.scale(5.0)); // Portée du bras (5 blocs)
+
+        InteractionPartEntity hitPart = null;
+        double closestDistance = Double.MAX_VALUE;
+
+        // On vérifie toutes les petites hitboxes (sièges, moteur, roues)
+        for (InteractionPartEntity part : this.hitboxes) {
+            // On calcule si le regard du joueur croise la "boîte" de la pièce
+            Optional<Vec3> hit = part.getBoundingBox().clip(eyePosition, reachEnd);
+            if (hit.isPresent()) {
+                double distance = eyePosition.distanceToSqr(hit.get());
+                // On garde la pièce la plus proche si plusieurs se superposent
+                if (distance < closestDistance) {
+                    closestDistance = distance;
+                    hitPart = part;
+                }
+            }
+        }
+
+        // --- 2. TRANSFERT DU CLIC À LA PIÈCE VISÉE ---
+        if (hitPart != null) {
+            // On a trouvé la pièce visée ! On lui transfère artificiellement le clic.
+            InteractionResult result = hitPart.interact(player, hand);
+
+            // Si la pièce a fait quelque chose (poser, visser, s'asseoir), on arrête tout !
+            if (result.consumesAction()) {
+                return result;
+            }
+        }
+
+        // --- 3. CLIC SUR LA CARROSSERIE GLOBALE ---
+        // Si on a cliqué à côté des sièges ou si on a les mains vides, on tente de
+        // monter automatiquement
+        if (!this.level().isClientSide() && player.getVehicle() == null && player.getItemInHand(hand).isEmpty()) {
             for (PartSlot slot : this.getPartSlots()) {
                 if (slot.getId().startsWith("seat") && slot.isSecured() && !isSeatOccupied(slot.getId())) {
                     assignSeat(player, slot.getId());
@@ -498,6 +534,7 @@ public abstract class BaseVehicleEntity extends Entity implements GeoEntity {
             }
             return InteractionResult.PASS; // Pas de siège libre
         }
+
         return super.interact(player, hand);
     }
 
