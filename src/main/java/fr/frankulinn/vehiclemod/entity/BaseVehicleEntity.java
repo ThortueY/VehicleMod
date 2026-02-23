@@ -38,7 +38,8 @@ public abstract class BaseVehicleEntity extends Entity implements GeoEntity {
             EntityDataSerializers.FLOAT);
     public static final EntityDataAccessor<Float> VEHICLE_ROLL = SynchedEntityData.defineId(BaseVehicleEntity.class,
             EntityDataSerializers.FLOAT);
-    public static final float MAX_FUEL = 100.0f; // La capacité maximum du réservoir
+
+    public abstract float getMaxFuel(); // La capacité maximum du réservoir
 
     // Slots pour les pièces de véhicule
     private final Map<String, PartSlot> partSlots = new HashMap<>();
@@ -52,6 +53,11 @@ public abstract class BaseVehicleEntity extends Entity implements GeoEntity {
     public float prevSteeringAngle = 0.0f;
     public float prevVehiclePitch = 0.0f;
     public float prevVehicleRoll = 0.0f;
+
+    @Nullable
+    public Player refuelingPlayer;
+    public InteractionHand refuelingHand;
+    public int refuelingTimeout = 0; // Ticks restants avant l'arrêt du remplissage si pas de nouveau clic
 
     private final java.util.Map<java.util.UUID, String> passengerSeats = new java.util.HashMap<>();
 
@@ -129,6 +135,58 @@ public abstract class BaseVehicleEntity extends Entity implements GeoEntity {
                 this.steeringAngle += (0.0f - this.steeringAngle) * 0.1f;
             }
         }
+
+        // --- NOUVEAU : 5. Transfert continu de carburant ---
+        if (this.refuelingPlayer != null) {
+            this.refuelingTimeout--;
+
+            if (this.refuelingTimeout <= 0
+                    || !(this.refuelingPlayer.getItemInHand(this.refuelingHand)
+                            .getItem() instanceof fr.frankulinn.vehiclemod.item.JerricanItem)
+                    || this.distanceTo(this.refuelingPlayer) > 5.0) {
+                // Le joueur a relâché le clic (timeout) ou s'est éloigné
+                this.refuelingPlayer = null;
+            } else {
+                // Transfert d'essence tous les 4 ticks
+                if (this.tickCount % 4 == 0) {
+                    net.minecraft.world.item.ItemStack jerricanStack = this.refuelingPlayer
+                            .getItemInHand(this.refuelingHand);
+                    float vehicleFuel = this.entityData.get(FUEL_LEVEL);
+                    float jerricanFuel = fr.frankulinn.vehiclemod.item.JerricanItem.getFuel(jerricanStack);
+                    float spaceLeft = this.getMaxFuel() - vehicleFuel;
+
+                    float toTransfer = Math.min(2.0f, Math.min(spaceLeft, jerricanFuel));
+
+                    if (toTransfer > 0) {
+                        if (!this.level().isClientSide()) {
+                            this.entityData.set(FUEL_LEVEL, vehicleFuel + toTransfer);
+                            if (!this.refuelingPlayer.isCreative()) {
+                                fr.frankulinn.vehiclemod.item.JerricanItem.setFuel(jerricanStack,
+                                        jerricanFuel - toTransfer);
+                                // Force l'envoi de la mise à jour de l'item au client
+                                if (this.refuelingPlayer instanceof net.minecraft.server.level.ServerPlayer serverPlayer) {
+                                    serverPlayer.inventoryMenu.broadcastChanges();
+                                }
+                            }
+                            this.level().playSound(null, this.getX(), this.getY(), this.getZ(),
+                                    net.minecraft.sounds.SoundEvents.BUCKET_EMPTY,
+                                    net.minecraft.sounds.SoundSource.PLAYERS,
+                                    0.2f, 0.8f + this.level().random.nextFloat() * 0.4f);
+                        }
+                    } else if (spaceLeft <= 0) {
+                        this.refuelingPlayer = null;
+                    } else if (jerricanFuel <= 0) {
+                        this.refuelingPlayer = null;
+                    }
+                }
+            }
+        }
+    }
+
+    public void startRefueling(Player player, InteractionHand hand) {
+        this.refuelingPlayer = player;
+        this.refuelingHand = hand;
+        this.refuelingTimeout = 5; // Le joueur a 5 ticks pour recliquer (maintenir), sinon ça s'arrête
     }
 
     protected void updateAcceleration(Player driver) {

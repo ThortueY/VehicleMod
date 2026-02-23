@@ -64,14 +64,10 @@ public class InteractionPartEntity extends Entity {
 
     @Override
     public InteractionResult interact(Player player, InteractionHand hand) {
-        if (this.level().isClientSide()) {
-            return InteractionResult.SUCCESS;
-        }
-
         if (this.parentVehicle == null)
             return InteractionResult.PASS;
 
-        fr.frankulinn.vehiclemod.entity.parts.PartSlot slot = this.parentVehicle.getSlot(this.slotId);
+        PartSlot slot = this.parentVehicle.getSlot(this.slotId);
         if (slot == null)
             return InteractionResult.PASS;
 

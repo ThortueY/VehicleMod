@@ -26,7 +26,7 @@ public class VehicleHudOverlay implements LayeredDraw.Layer {
 
             // L'essence (Pourcentage)
             float currentFuel = vehicle.getEntityData().get(BaseVehicleEntity.FUEL_LEVEL);
-            int fuelPercentage = (int) ((currentFuel / BaseVehicleEntity.MAX_FUEL) * 100);
+            int fuelPercentage = (int) ((currentFuel / vehicle.getMaxFuel()) * 100);
 
             // --- 2. POSITION SUR L'ÉCRAN ---
             // On le met en bas à droite de l'écran

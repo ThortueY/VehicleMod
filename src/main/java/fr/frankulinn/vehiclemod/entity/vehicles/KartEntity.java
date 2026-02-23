@@ -39,4 +39,9 @@ public class KartEntity extends BaseVehicleEntity {
         this.addSlot("seat_driver", new PartSlot("seat_driver", new Vec3(0.0, 0.2, -0.2), 0.6f, 0.6f,
                 new SeatInteraction(), PartCategory.GENERIC_SEAT));
     }
+
+    @Override
+    public float getMaxFuel() {
+        return 100.0f;
+    }
 }
