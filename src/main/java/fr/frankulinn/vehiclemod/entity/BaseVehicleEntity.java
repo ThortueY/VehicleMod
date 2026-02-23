@@ -2,16 +2,20 @@ package fr.frankulinn.vehiclemod.entity;
 
 import fr.frankulinn.vehiclemod.entity.parts.InteractionPartEntity;
 import fr.frankulinn.vehiclemod.entity.parts.PartSlot;
+import fr.frankulinn.vehiclemod.item.JerricanItem;
 import fr.frankulinn.vehiclemod.registers.ModEntities;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
@@ -136,57 +140,12 @@ public abstract class BaseVehicleEntity extends Entity implements GeoEntity {
             }
         }
 
-        // --- NOUVEAU : 5. Transfert continu de carburant ---
-        if (this.refuelingPlayer != null) {
-            this.refuelingTimeout--;
-
-            if (this.refuelingTimeout <= 0
-                    || !(this.refuelingPlayer.getItemInHand(this.refuelingHand)
-                            .getItem() instanceof fr.frankulinn.vehiclemod.item.JerricanItem)
-                    || this.distanceTo(this.refuelingPlayer) > 5.0) {
-                // Le joueur a relâché le clic (timeout) ou s'est éloigné
-                this.refuelingPlayer = null;
-            } else {
-                // Transfert d'essence tous les 4 ticks
-                if (this.tickCount % 4 == 0) {
-                    net.minecraft.world.item.ItemStack jerricanStack = this.refuelingPlayer
-                            .getItemInHand(this.refuelingHand);
-                    float vehicleFuel = this.entityData.get(FUEL_LEVEL);
-                    float jerricanFuel = fr.frankulinn.vehiclemod.item.JerricanItem.getFuel(jerricanStack);
-                    float spaceLeft = this.getMaxFuel() - vehicleFuel;
-
-                    float toTransfer = Math.min(2.0f, Math.min(spaceLeft, jerricanFuel));
-
-                    if (toTransfer > 0) {
-                        if (!this.level().isClientSide()) {
-                            this.entityData.set(FUEL_LEVEL, vehicleFuel + toTransfer);
-                            if (!this.refuelingPlayer.isCreative()) {
-                                fr.frankulinn.vehiclemod.item.JerricanItem.setFuel(jerricanStack,
-                                        jerricanFuel - toTransfer);
-                                // Force l'envoi de la mise à jour de l'item au client
-                                if (this.refuelingPlayer instanceof net.minecraft.server.level.ServerPlayer serverPlayer) {
-                                    serverPlayer.inventoryMenu.broadcastChanges();
-                                }
-                            }
-                            this.level().playSound(null, this.getX(), this.getY(), this.getZ(),
-                                    net.minecraft.sounds.SoundEvents.BUCKET_EMPTY,
-                                    net.minecraft.sounds.SoundSource.PLAYERS,
-                                    0.2f, 0.8f + this.level().random.nextFloat() * 0.4f);
-                        }
-                    } else if (spaceLeft <= 0) {
-                        this.refuelingPlayer = null;
-                    } else if (jerricanFuel <= 0) {
-                        this.refuelingPlayer = null;
-                    }
-                }
-            }
-        }
     }
 
     public void startRefueling(Player player, InteractionHand hand) {
         this.refuelingPlayer = player;
         this.refuelingHand = hand;
-        this.refuelingTimeout = 5; // Le joueur a 5 ticks pour recliquer (maintenir), sinon ça s'arrête
+        this.refuelingTimeout = 40; // 2 secondes (40 ticks) pour maintenir le clic
     }
 
     protected void updateAcceleration(Player driver) {

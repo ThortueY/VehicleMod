@@ -3,6 +3,7 @@ package fr.frankulinn.vehiclemod.item;
 import fr.frankulinn.vehiclemod.client.renderer.EngineItemRenderer;
 import fr.frankulinn.vehiclemod.entity.parts.EnginePart;
 import fr.frankulinn.vehiclemod.entity.parts.PartCategory;
+import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.item.Item;
 import software.bernie.geckolib.animatable.GeoItem;
@@ -50,7 +51,7 @@ public class EngineItem extends Item implements GeoItem {
             private EngineItemRenderer renderer;
 
             @Override
-            public net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer getGeoItemRenderer() {
+            public BlockEntityWithoutLevelRenderer getGeoItemRenderer() {
                 if (this.renderer == null)
                     this.renderer = new EngineItemRenderer();
                 return this.renderer;
