@@ -460,18 +460,16 @@ public abstract class BaseVehicleEntity extends Entity implements GeoEntity {
         // Positionner le joueur aux coordonnées 3D du siège
         if (seatSlot != null) {
             Vec3 offset = seatSlot.getOffset();
-            float yaw = this.getYRot() * ((float) Math.PI / 180F);
-
-            double rotatedX = offset.x * Math.cos(-yaw) - offset.z * Math.sin(-yaw);
-            double rotatedZ = offset.x * Math.sin(-yaw) + offset.z * Math.cos(-yaw);
+            // Même rotation que InteractionPartEntity pour un positionnement correct
+            Vec3 rotatedOffset = offset.yRot(-this.getYRot() * ((float) Math.PI / 180F));
 
             // Le centre vertical de la hitbox du siège
             double seatCenterY = offset.y + seatSlot.getHitboxHeight() / 2.0;
             // Le centre vertical de la hitbox du joueur (hauteur / 2)
             double passengerCenterOffset = passenger.getBbHeight() / 2.0;
 
-            callback.accept(passenger, this.getX() + rotatedX, this.getY() + seatCenterY - passengerCenterOffset,
-                    this.getZ() + rotatedZ);
+            callback.accept(passenger, this.getX() + rotatedOffset.x, this.getY() + seatCenterY - passengerCenterOffset,
+                    this.getZ() + rotatedOffset.z);
         } else {
             super.positionRider(passenger, callback);
         }
