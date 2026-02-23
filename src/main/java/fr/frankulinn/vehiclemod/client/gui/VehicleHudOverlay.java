@@ -1,10 +1,12 @@
 package fr.frankulinn.vehiclemod.client.gui;
 
 import fr.frankulinn.vehiclemod.entity.BaseVehicleEntity;
+import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.LayeredDraw;
 import net.minecraft.world.entity.player.Player;
+import org.jetbrains.annotations.NotNull;
 
 public class VehicleHudOverlay implements LayeredDraw.Layer {
 
@@ -12,24 +14,23 @@ public class VehicleHudOverlay implements LayeredDraw.Layer {
     public static final VehicleHudOverlay INSTANCE = new VehicleHudOverlay();
 
     @Override
-    public void render(GuiGraphics guiGraphics, net.minecraft.client.DeltaTracker deltaTracker) {
+    public void render(@NotNull GuiGraphics guiGraphics, @NotNull DeltaTracker deltaTracker) {
         Minecraft minecraft = Minecraft.getInstance();
         Player player = minecraft.player;
 
-        // On vérifie si le joueur existe et s'il est au volant de NOTRE véhicule
+        // On vérifie si le joueur existe et s'il est au volant du véhicule
         if (player != null && player.getVehicle() instanceof BaseVehicleEntity vehicle) {
 
-            // --- 1. CALCULS ---
-            // La vitesse (Blocks par tick -> km/h)
+            // Calcul de la vitesse
             double speedBpt = vehicle.getDeltaMovement().horizontalDistance();
             int speedKmh = (int) Math.round(speedBpt * 72.0);
 
-            // L'essence (Pourcentage)
+            // Calcul du niveau d'essence
             float currentFuel = vehicle.getEntityData().get(BaseVehicleEntity.FUEL_LEVEL);
             int fuelPercentage = (int) ((currentFuel / vehicle.getMaxFuel()) * 100);
 
-            // --- 2. POSITION SUR L'ÉCRAN ---
-            // On le met en bas à droite de l'écran
+
+            // position en bas à droite de l'écran
             int screenWidth = guiGraphics.guiWidth();
             int screenHeight = guiGraphics.guiHeight();
 
@@ -37,10 +38,10 @@ public class VehicleHudOverlay implements LayeredDraw.Layer {
             int y = screenHeight - 40; // 40 pixels depuis le bas
 
             // --- 3. DESSIN ---
-            // Un petit fond noir semi-transparent pour bien lire le texte
+            // fond noir
             guiGraphics.fill(x - 5, y - 5, screenWidth - 5, screenHeight - 5, 0x80000000);
 
-            // Le texte de la vitesse (En blanc)
+            // Le texte de la vitesse
             guiGraphics.drawString(minecraft.font, "Vitesse : " + speedKmh + " km/h", x, y, 0xFFFFFF);
 
             // Le texte de l'essence (Devient rouge si on a moins de 20%)

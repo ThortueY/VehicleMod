@@ -1,6 +1,8 @@
 package fr.frankulinn.vehiclemod.item;
 
-import fr.frankulinn.vehiclemod.client.renderer.SeatItemRenderer;
+import fr.frankulinn.vehiclemod.client.model.ModelSubPath;
+import fr.frankulinn.vehiclemod.client.model.item.PartItemModel;
+import fr.frankulinn.vehiclemod.client.renderer.ItemRenderer;
 import fr.frankulinn.vehiclemod.entity.parts.PartCategory;
 import fr.frankulinn.vehiclemod.entity.parts.SeatPart;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -39,12 +41,14 @@ public class SeatItem extends Item implements GeoItem {
     @Override
     public void createGeoRenderer(Consumer<GeoRenderProvider> consumer) {
         consumer.accept(new GeoRenderProvider() {
-            private SeatItemRenderer renderer;
+            private ItemRenderer<EngineItem> renderer;
 
             @Override
             public net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer getGeoItemRenderer() {
-                if (this.renderer == null)
-                    this.renderer = new SeatItemRenderer();
+                if (this.renderer == null) {
+                    // On utilise le modèle d'Item universel en lui donnant le chemin de tes fichiers moteurs !
+                    this.renderer = new ItemRenderer<>(new PartItemModel<>(ModelSubPath.ENTITY_SEATS));
+                }
                 return this.renderer;
             }
         });

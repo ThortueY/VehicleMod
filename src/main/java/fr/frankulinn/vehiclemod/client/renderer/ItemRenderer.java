@@ -3,12 +3,13 @@ package fr.frankulinn.vehiclemod.client.renderer;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 
-import fr.frankulinn.vehiclemod.client.model.ItemModel;
+import fr.frankulinn.vehiclemod.client.model.item.ItemModel;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import software.bernie.geckolib.animatable.GeoItem;
+import software.bernie.geckolib.model.GeoModel;
 import software.bernie.geckolib.renderer.GeoItemRenderer;
 
 /**
@@ -25,8 +26,8 @@ public class ItemRenderer<T extends Item & GeoItem> extends GeoItemRenderer<T> {
      * Constructeur par défaut — utilise {@link ItemModel} avec résolution
      * automatique des ressources.
      */
-    public ItemRenderer() {
-        super(new ItemModel<>());
+    public ItemRenderer(GeoModel<T> model) {
+        super(model);
     }
 
     public ItemRenderer(ItemModel<T> model) {

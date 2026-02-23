@@ -16,6 +16,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.VoxelShape;
+import org.jetbrains.annotations.NotNull;
 import software.bernie.geckolib.animatable.GeoEntity;
 import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
 import software.bernie.geckolib.animation.AnimatableManager;
@@ -54,11 +55,6 @@ public abstract class BaseVehicleEntity extends Entity implements GeoEntity {
     public float prevVehiclePitch = 0.0f;
     public float prevVehicleRoll = 0.0f;
 
-    @Nullable
-    public Player refuelingPlayer;
-    public InteractionHand refuelingHand;
-    public int refuelingTimeout = 0; // Ticks restants avant l'arrêt du remplissage si pas de nouveau clic
-
     private final java.util.Map<java.util.UUID, String> passengerSeats = new java.util.HashMap<>();
 
     // Constructeur obligatoire pour que Minecraft puisse spawner l'entité
@@ -80,10 +76,11 @@ public abstract class BaseVehicleEntity extends Entity implements GeoEntity {
         super.tick();
 
         // 1. Apparition des hitboxes (Serveur uniquement)
-        if (!this.level().isClientSide() && !this.hitboxesSpawned) {
-            this.spawnHitboxes();
-            this.hitboxesSpawned = true;
-        }
+        if (!this.level().isClientSide())
+            if (!this.hitboxesSpawned) {
+                this.spawnHitboxes();
+                this.hitboxesSpawned = true;
+            }
 
         // 2. Gestion de la Physique et du Réseau
         if (this.isVehicle() && this.getControllingPassenger() instanceof Player driver) {
@@ -138,12 +135,6 @@ public abstract class BaseVehicleEntity extends Entity implements GeoEntity {
 
     }
 
-    public void startRefueling(Player player, InteractionHand hand) {
-        this.refuelingPlayer = player;
-        this.refuelingHand = hand;
-        this.refuelingTimeout = 40; // 2 secondes (40 ticks) pour maintenir le clic
-    }
-
     protected void updateAcceleration(Player driver) {
         float forwardImpulse = driver.zza; // Z = Avancer/Reculer
         float strafeImpulse = -driver.xxa; // X = Gauche/Droite
@@ -161,13 +152,13 @@ public abstract class BaseVehicleEntity extends Entity implements GeoEntity {
 
             String engine = syncedParts.getString("engine_bay");
             boolean engineSecured = syncedParts.getBoolean("engine_bay_secured"); // On lit le booléen
-            isEngineSecured = (engine != null && !engine.isEmpty() && !engine.equals("none") && engineSecured);
+            isEngineSecured = (!engine.isEmpty() && !engine.equals("none") && engineSecured);
 
             for (PartSlot slot : this.getPartSlots()) {
                 String wheelId = syncedParts.getString(slot.getId());
                 boolean wheelSecured = syncedParts.getBoolean(slot.getId() + "_secured"); // On lit le booléen
 
-                if (slot.getId().startsWith("wheel") && wheelId != null && !wheelId.isEmpty() && !wheelId.equals("none")
+                if (slot.getId().startsWith("wheel") && !wheelId.isEmpty() && !wheelId.equals("none")
                         && wheelSecured) {
                     securedWheels++;
                 }
@@ -403,7 +394,7 @@ public abstract class BaseVehicleEntity extends Entity implements GeoEntity {
 
     // Définit avec qui la voiture a le droit d'entrer en collision physique
     @Override
-    public boolean canCollideWith(Entity entity) {
+    public boolean canCollideWith(@NotNull Entity entity) {
         // On ignore totalement la collision si l'entité touchée est un de nos
         // composants
         if (entity instanceof InteractionPartEntity) {
@@ -423,7 +414,7 @@ public abstract class BaseVehicleEntity extends Entity implements GeoEntity {
 
     // Sauvegarde des données quand on quitte le monde
     @Override
-    protected void addAdditionalSaveData(CompoundTag compound) {
+    protected void addAdditionalSaveData(@NotNull CompoundTag compound) {
         CompoundTag slotsTag = new CompoundTag();
 
         // On sauvegarde chaque emplacement par son nom ("engine_bay", etc.)
@@ -468,7 +459,7 @@ public abstract class BaseVehicleEntity extends Entity implements GeoEntity {
     }
 
     @Override
-    public InteractionResult interact(Player player, InteractionHand hand) {
+    public @NotNull InteractionResult interact(@NotNull Player player, @NotNull InteractionHand hand) {
         // --- 1. RAYTRACE INTERNE (PERCER LA GROSSE HITBOX) ---
         // On récupère la position des yeux du joueur et la direction de son regard
         Vec3 eyePosition = player.getEyePosition(1.0f);
@@ -508,7 +499,7 @@ public abstract class BaseVehicleEntity extends Entity implements GeoEntity {
         // monter automatiquement
         if (!this.level().isClientSide() && player.getVehicle() == null && player.getItemInHand(hand).isEmpty()) {
             for (PartSlot slot : this.getPartSlots()) {
-                if (slot.getId().startsWith("seat") && slot.isSecured() && !isSeatOccupied(slot.getId())) {
+                if (slot.getId().startsWith("seat") && slot.isSecured() && isSeatNotOccupied(slot.getId())) {
                     assignSeat(player, slot.getId());
                     player.startRiding(this);
                     return InteractionResult.SUCCESS;
@@ -525,24 +516,24 @@ public abstract class BaseVehicleEntity extends Entity implements GeoEntity {
     }
 
     // Vérifier si un siège est déjà pris par quelqu'un dans la voiture
-    public boolean isSeatOccupied(String slotId) {
+    public boolean isSeatNotOccupied(String slotId) {
         for (Entity p : this.getPassengers()) {
             if (slotId.equals(this.passengerSeats.get(p.getUUID()))) {
-                return true;
+                return false;
             }
         }
-        return false;
+        return true;
     }
 
     // Nettoyer le registre quand un joueur descend de la voiture
     @Override
-    protected void removePassenger(Entity passenger) {
+    protected void removePassenger(@NotNull Entity passenger) {
         super.removePassenger(passenger);
         this.passengerSeats.remove(passenger.getUUID());
     }
 
     @Override
-    protected void positionRider(Entity passenger, Entity.MoveFunction callback) {
+    protected void positionRider(@NotNull Entity passenger, @NotNull Entity.MoveFunction callback) {
         PartSlot seatSlot = null;
 
         if (this.level().isClientSide()) {
@@ -563,7 +554,7 @@ public abstract class BaseVehicleEntity extends Entity implements GeoEntity {
 
             if (targetSlotId == null) {
                 for (PartSlot slot : this.getPartSlots()) {
-                    if (slot.getId().startsWith("seat") && slot.isSecured() && !isSeatOccupied(slot.getId())) {
+                    if (slot.getId().startsWith("seat") && slot.isSecured() && isSeatNotOccupied(slot.getId())) {
                         targetSlotId = slot.getId();
                         assignSeat(passenger, targetSlotId);
                         break;
@@ -633,7 +624,7 @@ public abstract class BaseVehicleEntity extends Entity implements GeoEntity {
     }
 
     @Override
-    protected boolean canAddPassenger(Entity passenger) {
+    protected boolean canAddPassenger(@NotNull Entity passenger) {
         int availableSeats = 0;
 
         // On compte chaque emplacement qui commence par "seat" et qui est vissé
@@ -660,10 +651,7 @@ public abstract class BaseVehicleEntity extends Entity implements GeoEntity {
 
     // Coupe le son des bruits de pas de l'entité
     @Override
-    protected void playStepSound(net.minecraft.core.BlockPos pos,
-            net.minecraft.world.level.block.state.BlockState blockIn) {
-        // En laissant cette méthode vide, la voiture devient silencieuse.
-        // Plus tard, on mettra le bruit de roulement des pneus sur l'asphalte ici !
+    protected void playStepSound(@NotNull BlockPos pos, @NotNull BlockState blockIn) {
     }
 
     @Override

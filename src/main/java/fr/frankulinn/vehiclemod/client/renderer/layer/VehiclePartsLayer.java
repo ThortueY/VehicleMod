@@ -2,13 +2,13 @@ package fr.frankulinn.vehiclemod.client.renderer.layer;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import fr.frankulinn.vehiclemod.client.model.EngineModel;
-import fr.frankulinn.vehiclemod.client.model.SeatModel;
-import fr.frankulinn.vehiclemod.client.model.WheelModel;
+import fr.frankulinn.vehiclemod.client.model.ModelSubPath;
+import fr.frankulinn.vehiclemod.client.model.entity.PartsModel;
 import fr.frankulinn.vehiclemod.entity.BaseVehicleEntity;
 import fr.frankulinn.vehiclemod.entity.parts.PartSlot;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.phys.Vec3;
 import software.bernie.geckolib.cache.object.BakedGeoModel;
 import software.bernie.geckolib.renderer.GeoEntityRenderer;
@@ -16,10 +16,10 @@ import software.bernie.geckolib.renderer.layer.GeoRenderLayer;
 
 public class VehiclePartsLayer extends GeoRenderLayer<BaseVehicleEntity> {
 
-    // On instancie le modèle du moteur pour pouvoir le dessiner
-    private final EngineModel engineModel = new EngineModel();
-    private final WheelModel wheelModel = new WheelModel();
-    private final SeatModel seatModel = new SeatModel();
+    //Pièces du véhicule
+    private final PartsModel engineModel = new PartsModel();
+    private final PartsModel wheelModel = new PartsModel();
+    private final PartsModel seatModel = new PartsModel();
 
     public VehiclePartsLayer(GeoEntityRenderer<BaseVehicleEntity> entityRendererIn) {
         super(entityRendererIn);
@@ -31,8 +31,13 @@ public class VehiclePartsLayer extends GeoRenderLayer<BaseVehicleEntity> {
             MultiBufferSource bufferSource, VertexConsumer buffer, float partialTick, int packedLight,
             int packedOverlay) {
 
+        engineModel.init(ModelSubPath.ENTITY_ENGINE);
+        wheelModel.init(ModelSubPath.ENTITY_WHEELS);
+        seatModel.init(ModelSubPath.ENTITY_SEATS);
+
+
         // 1. On récupère notre dictionnaire de pièces envoyé par le serveur
-        net.minecraft.nbt.CompoundTag syncedParts = animatable.getEntityData().get(BaseVehicleEntity.PARTS_SYNC);
+        CompoundTag syncedParts = animatable.getEntityData().get(BaseVehicleEntity.PARTS_SYNC);
 
         // 2. On boucle sur tous les slots prévus par le véhicule
         for (PartSlot slot : animatable.getPartSlots()) {
@@ -40,8 +45,7 @@ public class VehiclePartsLayer extends GeoRenderLayer<BaseVehicleEntity> {
             // On regarde si le dictionnaire contient une pièce pour ce slot
             String modelId = syncedParts.getString(slot.getId());
 
-            // Si la chaîne est vide ou vaut "none", ça veut dire qu'il n'y a rien de posé
-            // ici.
+            // Si la chaîne est vide ou il vaut "none", ça veut dire qu'il n'y a rien de posé.
             if (modelId.isEmpty() || modelId.equals("none"))
                 continue;
 
@@ -68,17 +72,13 @@ public class VehiclePartsLayer extends GeoRenderLayer<BaseVehicleEntity> {
 
                 if (offset.x < 0) {
                     poseStack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(180f));
-                    poseStack.mulPose(com.mojang.math.Axis.XP.rotationDegrees(-currentWheelRotDegrees)); // Utilise la
-                                                                                                         // valeur
-                                                                                                         // convertie !
+                    poseStack.mulPose(com.mojang.math.Axis.XP.rotationDegrees(-currentWheelRotDegrees));
                 } else {
-                    poseStack.mulPose(com.mojang.math.Axis.XP.rotationDegrees(currentWheelRotDegrees)); // Utilise la
-                                                                                                        // valeur
-                                                                                                        // convertie !
+                    poseStack.mulPose(com.mojang.math.Axis.XP.rotationDegrees(currentWheelRotDegrees));
                 }
 
                 // On dessine la roue
-                this.wheelModel.setWheelType(modelId);
+                this.wheelModel.setPartId(modelId);
                 BakedGeoModel wheelBaked = this.wheelModel.getBakedModel(this.wheelModel.getModelResource(animatable));
                 RenderType rtWheel = RenderType.entityCutoutNoCull(this.wheelModel.getTextureResource(animatable));
                 this.getRenderer().reRender(wheelBaked, poseStack, bufferSource, animatable, rtWheel,
@@ -87,7 +87,7 @@ public class VehiclePartsLayer extends GeoRenderLayer<BaseVehicleEntity> {
 
             // --- SI C'EST UN MOTEUR ---
             else if (slot.getId().startsWith("engine")) {
-                this.engineModel.setEngineId(modelId);
+                this.engineModel.setPartId(modelId);
                 BakedGeoModel engineBaked = this.engineModel
                         .getBakedModel(this.engineModel.getModelResource(animatable));
                 RenderType rtEngine = RenderType.entityCutoutNoCull(this.engineModel.getTextureResource(animatable));
@@ -97,7 +97,7 @@ public class VehiclePartsLayer extends GeoRenderLayer<BaseVehicleEntity> {
 
             // --- SI C'EST UN SIÈGE ---
             else if (slot.getId().startsWith("seat")) {
-                this.seatModel.setSeatId(modelId);
+                this.seatModel.setPartId(modelId);
                 BakedGeoModel seatBaked = this.seatModel.getBakedModel(this.seatModel.getModelResource(animatable));
                 RenderType rtSeat = RenderType.entityCutoutNoCull(this.seatModel.getTextureResource(animatable));
                 this.getRenderer().reRender(seatBaked, poseStack, bufferSource, animatable, rtSeat,

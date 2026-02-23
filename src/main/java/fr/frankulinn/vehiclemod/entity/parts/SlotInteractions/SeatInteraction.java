@@ -84,7 +84,7 @@ public class SeatInteraction implements SlotInteraction {
             }
             // --- S'ASSEOIR SPÉCIFIQUEMENT SUR CE SIÈGE ---
             else if (stackInHand.isEmpty() && !player.isShiftKeyDown()) {
-                if (!vehicle.isSeatOccupied(slot.getId())) {
+                if (vehicle.isSeatNotOccupied(slot.getId())) {
                     if (!vehicle.level().isClientSide()) {
                         vehicle.assignSeat(player, slot.getId());
                         player.startRiding(vehicle);

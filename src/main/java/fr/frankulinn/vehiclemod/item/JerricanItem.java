@@ -1,5 +1,6 @@
 package fr.frankulinn.vehiclemod.item;
 
+import fr.frankulinn.vehiclemod.client.model.item.ItemModel;
 import fr.frankulinn.vehiclemod.client.renderer.ItemRenderer;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.component.DataComponents;
@@ -97,7 +98,7 @@ public class JerricanItem extends Item implements GeoItem {
             @Override
             public net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer getGeoItemRenderer() {
                 if (this.renderer == null)
-                    this.renderer = new ItemRenderer<>();
+                    this.renderer = new ItemRenderer<>(new ItemModel<>());
                 return this.renderer;
             }
         });

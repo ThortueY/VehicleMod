@@ -1,19 +1,22 @@
 package fr.frankulinn.vehiclemod.client.renderer;
 
 import com.mojang.blaze3d.vertex.PoseStack;
-import fr.frankulinn.vehiclemod.client.model.VehicleChassisModel;
+import fr.frankulinn.vehiclemod.client.model.ModelSubPath;
+import fr.frankulinn.vehiclemod.client.model.entity.PartsModel;
 import fr.frankulinn.vehiclemod.client.renderer.layer.VehicleHitboxLayer;
 import fr.frankulinn.vehiclemod.client.renderer.layer.VehiclePartsLayer;
 import fr.frankulinn.vehiclemod.entity.BaseVehicleEntity;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import software.bernie.geckolib.renderer.GeoEntityRenderer;
 
 public class VehicleChassisRenderer extends GeoEntityRenderer<BaseVehicleEntity> {
 
     public VehicleChassisRenderer(EntityRendererProvider.Context renderManager) {
-        super(renderManager, new VehicleChassisModel());
+        super(renderManager, new PartsModel());
 
         // Le calque qui dessine les modèles 3D des pièces
         this.addRenderLayer(new VehiclePartsLayer(this));
@@ -44,6 +47,13 @@ public class VehicleChassisRenderer extends GeoEntityRenderer<BaseVehicleEntity>
 
         float lerpRoll = Mth.lerp(partialTick, entity.prevVehicleRoll, entity.getVehicleRoll());
         poseStack.mulPose(com.mojang.math.Axis.ZP.rotationDegrees(lerpRoll));
+
+        if (super.getGeoModel() instanceof PartsModel partsModel) {
+            ResourceLocation loc = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType());
+            String path = loc.getPath();
+            partsModel.init(ModelSubPath.ENTITY_CHASSIS);
+            partsModel.setPartId(path);
+        }
 
         // 5. On laisse GeckoLib dessiner la voiture dans cet espace tourné + incliné
         super.render(entity, entityYaw, partialTick, poseStack, bufferSource, packedLight);

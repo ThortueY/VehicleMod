@@ -1,6 +1,8 @@
 package fr.frankulinn.vehiclemod.item;
 
-import fr.frankulinn.vehiclemod.client.renderer.EngineItemRenderer;
+import fr.frankulinn.vehiclemod.client.model.ModelSubPath;
+import fr.frankulinn.vehiclemod.client.model.item.PartItemModel;
+import fr.frankulinn.vehiclemod.client.renderer.ItemRenderer;
 import fr.frankulinn.vehiclemod.entity.parts.EnginePart;
 import fr.frankulinn.vehiclemod.entity.parts.PartCategory;
 import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer;
@@ -48,12 +50,14 @@ public class EngineItem extends Item implements GeoItem {
     @Override
     public void createGeoRenderer(Consumer<GeoRenderProvider> consumer) {
         consumer.accept(new GeoRenderProvider() {
-            private EngineItemRenderer renderer;
+            private ItemRenderer<EngineItem> renderer;
 
             @Override
             public BlockEntityWithoutLevelRenderer getGeoItemRenderer() {
-                if (this.renderer == null)
-                    this.renderer = new EngineItemRenderer();
+                if (this.renderer == null) {
+                    // On utilise le modèle d'Item universel en lui donnant le chemin de tes fichiers moteurs !
+                    this.renderer = new ItemRenderer<>(new PartItemModel<>(ModelSubPath.ENTITY_ENGINE));
+                }
                 return this.renderer;
             }
         });
@@ -61,7 +65,6 @@ public class EngineItem extends Item implements GeoItem {
 
     @Override
     public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {
-        // Pas d'animation pour l'instant
     }
 
     @Override

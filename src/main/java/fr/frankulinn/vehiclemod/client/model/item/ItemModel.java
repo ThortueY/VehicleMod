@@ -1,4 +1,4 @@
-package fr.frankulinn.vehiclemod.client.model;
+package fr.frankulinn.vehiclemod.client.model.item;
 
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;

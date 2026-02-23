@@ -33,7 +33,7 @@ public class VehicleHitboxLayer extends GeoRenderLayer<BaseVehicleEntity> {
         if (player == null)
             return;
 
-        // 1. On ne dessine que si le joueur est proche (ex: à moins de 6 blocs)
+        // 1. On ne dessine que si le joueur est proche (ex : à moins de 6 blocs).
         if (player.distanceToSqr(animatable) > 36.0)
             return;
 
