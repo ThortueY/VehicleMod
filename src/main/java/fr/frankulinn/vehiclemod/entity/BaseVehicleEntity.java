@@ -3,6 +3,7 @@ package fr.frankulinn.vehiclemod.entity;
 import fr.frankulinn.vehiclemod.entity.parts.InteractionPartEntity;
 import fr.frankulinn.vehiclemod.entity.parts.PartSlot;
 import fr.frankulinn.vehiclemod.registers.ModEntities;
+import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.world.InteractionHand;
@@ -12,7 +13,9 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.shapes.VoxelShape;
 import software.bernie.geckolib.animatable.GeoEntity;
 import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
 import software.bernie.geckolib.animation.AnimatableManager;
@@ -31,6 +34,8 @@ public abstract class BaseVehicleEntity extends Entity implements GeoEntity {
     // Variables pour le réservoir
     public static final EntityDataAccessor<Float> FUEL_LEVEL = SynchedEntityData.defineId(BaseVehicleEntity.class,
             EntityDataSerializers.FLOAT);
+    public static final EntityDataAccessor<Float> VEHICLE_PITCH = SynchedEntityData.defineId(BaseVehicleEntity.class,
+            EntityDataSerializers.FLOAT);
     public static final float MAX_FUEL = 100.0f; // La capacité maximum du réservoir
 
     // Slots pour les pièces de véhicule
@@ -43,6 +48,7 @@ public abstract class BaseVehicleEntity extends Entity implements GeoEntity {
     public float prevWheelRotation = 0.0f;
     public float steeringAngle = 0.0f;
     public float prevSteeringAngle = 0.0f;
+    public float prevVehiclePitch = 0.0f;
 
     private final java.util.Map<java.util.UUID, String> passengerSeats = new java.util.HashMap<>();
 
@@ -83,6 +89,9 @@ public abstract class BaseVehicleEntity extends Entity implements GeoEntity {
 
         // 3. Aligne la rotation visuelle
         this.setYBodyRot(this.getYRot());
+
+        // 3.5 Calcul de l'inclinaison (pitch) sur les pentes
+        this.updatePitch();
 
         // --- NOUVEAU : 4. ANIMATION DES ROUES (Client uniquement) ---
         if (this.level().isClientSide()) {
@@ -250,6 +259,65 @@ public abstract class BaseVehicleEntity extends Entity implements GeoEntity {
         this.move(net.minecraft.world.entity.MoverType.SELF, this.getDeltaMovement());
     }
 
+    // --- INCLINAISON DU VÉHICULE SUR LES PENTES ---
+    private void updatePitch() {
+        if (this.level().isClientSide()) {
+            // Côté client, on sauvegarde le pitch précédent pour l'interpolation
+            this.prevVehiclePitch = this.entityData.get(VEHICLE_PITCH);
+            return;
+        }
+
+        // Distance entre l'avant et l'arrière du véhicule (en blocs)
+        float halfLength = 1.2f;
+
+        // Direction avant du véhicule
+        float yawRad = this.getYRot() * ((float) Math.PI / 180F);
+        double frontX = this.getX() + (-Math.sin(yawRad) * halfLength);
+        double frontZ = this.getZ() + (Math.cos(yawRad) * halfLength);
+        double backX = this.getX() + (Math.sin(yawRad) * halfLength);
+        double backZ = this.getZ() + (-Math.cos(yawRad) * halfLength);
+
+        // Échantillonner la hauteur du sol à l'avant et à l'arrière
+        double frontGroundY = getGroundHeight(frontX, this.getY(), frontZ);
+        double backGroundY = getGroundHeight(backX, this.getY(), backZ);
+
+        // Calculer le pitch
+        double deltaY = frontGroundY - backGroundY;
+        double distance = halfLength * 2.0;
+        float targetPitch = (float) Math.toDegrees(Math.atan2(deltaY, distance));
+
+        // Limiter le pitch à ±30 degrés
+        targetPitch = net.minecraft.util.Mth.clamp(targetPitch, -30.0f, 30.0f);
+
+        // Lissage progressif pour éviter les saccades
+        float currentPitch = this.entityData.get(VEHICLE_PITCH);
+        float smoothedPitch = currentPitch + (targetPitch - currentPitch) * 0.3f;
+
+        this.entityData.set(VEHICLE_PITCH, smoothedPitch);
+    }
+
+    public float getVehiclePitch() {
+        return this.entityData.get(VEHICLE_PITCH);
+    }
+
+    private double getGroundHeight(double x, double entityY, double z) {
+        BlockPos pos = BlockPos.containing(x, entityY + 1, z);
+        // Chercher le sol en dessous (max 4 blocs)
+        for (int i = 0; i < 4; i++) {
+            BlockPos checkPos = pos.below(i);
+            BlockState state = this.level().getBlockState(checkPos);
+            VoxelShape collisionShape = state.getCollisionShape(this.level(), checkPos);
+            // Ignorer les blocs sans collision (fleurs, herbe, etc.)
+            if (!collisionShape.isEmpty()) {
+                // Utiliser la hauteur réelle de la collision shape (dalles = 0.5, neige =
+                // variable, bloc plein = 1.0)
+                return checkPos.getY() + collisionShape.max(net.minecraft.core.Direction.Axis.Y);
+            }
+        }
+        // Si pas de sol trouvé, retourner la position actuelle
+        return entityY;
+    }
+
     // Méthode pour générer les hitboxes
     private void spawnHitboxes() {
         // On boucle sur tous les slots enregistrés et on génère leur hitbox
@@ -275,6 +343,7 @@ public abstract class BaseVehicleEntity extends Entity implements GeoEntity {
     protected void defineSynchedData(SynchedEntityData.Builder builder) {
         builder.define(PARTS_SYNC, new CompoundTag());
         builder.define(FUEL_LEVEL, 0.0f);
+        builder.define(VEHICLE_PITCH, 0.0f);
     }
 
     // Mise à jour des variables dans l'entité

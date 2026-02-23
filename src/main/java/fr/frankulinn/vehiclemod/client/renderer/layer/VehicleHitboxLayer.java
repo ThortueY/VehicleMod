@@ -117,7 +117,6 @@ public class VehicleHitboxLayer extends GeoRenderLayer<BaseVehicleEntity> {
             if (shouldHighlight) {
                 Vec3 offset = slot.getOffset();
                 float hw = slot.getHitboxWidth() / 2.0f;
-                float hh = slot.getHitboxHeight() / 2.0f;
 
                 poseStack.pushPose();
 

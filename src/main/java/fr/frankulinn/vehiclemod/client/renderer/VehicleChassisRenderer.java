@@ -1,6 +1,5 @@
 package fr.frankulinn.vehiclemod.client.renderer;
 
-
 import com.mojang.blaze3d.vertex.PoseStack;
 import fr.frankulinn.vehiclemod.client.model.VehicleChassisModel;
 import fr.frankulinn.vehiclemod.client.renderer.layer.VehicleHitboxLayer;
@@ -8,6 +7,7 @@ import fr.frankulinn.vehiclemod.client.renderer.layer.VehiclePartsLayer;
 import fr.frankulinn.vehiclemod.entity.BaseVehicleEntity;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
+import net.minecraft.util.Mth;
 import software.bernie.geckolib.renderer.GeoEntityRenderer;
 
 public class VehicleChassisRenderer extends GeoEntityRenderer<BaseVehicleEntity> {
@@ -25,22 +25,28 @@ public class VehicleChassisRenderer extends GeoEntityRenderer<BaseVehicleEntity>
     }
 
     @Override
-    public void render(BaseVehicleEntity entity, float entityYaw, float partialTick, PoseStack poseStack, MultiBufferSource bufferSource, int packedLight) {
+    public void render(BaseVehicleEntity entity, float entityYaw, float partialTick, PoseStack poseStack,
+            MultiBufferSource bufferSource, int packedLight) {
 
         // 1. On sauvegarde l'état actuel de la caméra
         poseStack.pushPose();
 
-        // 2. Calcul fluide de la rotation (le Lerp empêche la voiture de saccader quand elle tourne)
-        float lerpYaw = net.minecraft.util.Mth.lerp(partialTick, entity.yRotO, entity.getYRot());
+        // 2. Calcul fluide de la rotation (le Lerp empêche la voiture de saccader quand
+        // elle tourne)
+        float lerpYaw = Mth.lerp(partialTick, entity.yRotO, entity.getYRot());
 
         // 3. On tourne TOUT l'espace de rendu (Châssis + Pièces)
-        // ⚠️ NOTE : "180.0f - lerpYaw" est la norme dans Minecraft pour remettre les modèles à l'endroit.
         poseStack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(-lerpYaw));
 
-        // 4. On laisse GeckoLib dessiner la voiture dans cet espace maintenant tourné
+        // 4. INCLINAISON SUR LES PENTES : interpolation fluide du pitch
+        float lerpPitch = Mth.lerp(partialTick, entity.prevVehiclePitch, entity.getVehiclePitch());
+        poseStack.mulPose(com.mojang.math.Axis.XP.rotationDegrees(-lerpPitch));
+
+        // 5. On laisse GeckoLib dessiner la voiture dans cet espace maintenant tourné +
+        // incliné
         super.render(entity, entityYaw, partialTick, poseStack, bufferSource, packedLight);
 
-        // 5. On restaure la caméra pour ne pas faire tourner tout le reste du jeu !
+        // 6. On restaure la caméra pour ne pas faire tourner tout le reste du jeu !
         poseStack.popPose();
     }
 }
