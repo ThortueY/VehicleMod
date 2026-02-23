@@ -422,33 +422,56 @@ public abstract class BaseVehicleEntity extends Entity implements GeoEntity {
 
     @Override
     protected void positionRider(Entity passenger, Entity.MoveFunction callback) {
-        // 1. On regarde quel siège le joueur a choisi
-        String targetSlotId = this.passengerSeats.get(passenger.getUUID());
+        PartSlot seatSlot = null;
 
-        // 2. SÉCURITÉ : S'il est monté en cliquant sur la carrosserie sans viser un
-        // siège précis,
-        // on lui assigne automatiquement le premier siège libre !
-        if (targetSlotId == null) {
+        if (this.level().isClientSide()) {
+            // Côté CLIENT : passengerSeats n'est pas synchronisé et PartSlot.isSecured()
+            // est toujours false.
+            // On cherche le premier slot "seat_" qui est marqué secured dans le CompoundTag
+            // synchronisé.
+            CompoundTag syncedParts = this.entityData.get(PARTS_SYNC);
             for (PartSlot slot : this.getPartSlots()) {
-                if (slot.getId().startsWith("seat") && slot.isSecured() && !isSeatOccupied(slot.getId())) {
-                    targetSlotId = slot.getId();
-                    assignSeat(passenger, targetSlotId);
+                if (slot.getId().startsWith("seat") && syncedParts.getBoolean(slot.getId() + "_secured")) {
+                    seatSlot = slot;
                     break;
                 }
             }
+        } else {
+            // Côté SERVEUR : on utilise le vrai système d'assignation
+            String targetSlotId = this.passengerSeats.get(passenger.getUUID());
+
+            if (targetSlotId == null) {
+                for (PartSlot slot : this.getPartSlots()) {
+                    if (slot.getId().startsWith("seat") && slot.isSecured() && !isSeatOccupied(slot.getId())) {
+                        targetSlotId = slot.getId();
+                        assignSeat(passenger, targetSlotId);
+                        break;
+                    }
+                }
+            }
+
+            seatSlot = targetSlotId != null ? this.getSlot(targetSlotId) : null;
+            // Vérification serveur : le slot doit être secured
+            if (seatSlot != null && !seatSlot.isSecured()) {
+                seatSlot = null;
+            }
         }
 
-        PartSlot seatSlot = targetSlotId != null ? this.getSlot(targetSlotId) : null;
-
-        // 3. On asseoit le joueur aux coordonnées 3D de son siège
-        if (seatSlot != null && seatSlot.isSecured()) {
+        // Positionner le joueur aux coordonnées 3D du siège
+        if (seatSlot != null) {
             Vec3 offset = seatSlot.getOffset();
             float yaw = this.getYRot() * ((float) Math.PI / 180F);
 
             double rotatedX = offset.x * Math.cos(-yaw) - offset.z * Math.sin(-yaw);
             double rotatedZ = offset.x * Math.sin(-yaw) + offset.z * Math.cos(-yaw);
 
-            callback.accept(passenger, this.getX() + rotatedX, this.getY() + offset.y + 0.3, this.getZ() + rotatedZ);
+            // Le centre vertical de la hitbox du siège
+            double seatCenterY = offset.y + seatSlot.getHitboxHeight() / 2.0;
+            // Le centre vertical de la hitbox du joueur (hauteur / 2)
+            double passengerCenterOffset = passenger.getBbHeight() / 2.0;
+
+            callback.accept(passenger, this.getX() + rotatedX, this.getY() + seatCenterY - passengerCenterOffset,
+                    this.getZ() + rotatedZ);
         } else {
             super.positionRider(passenger, callback);
         }
