@@ -1,9 +1,11 @@
 package fr.frankulinn.vehiclemod.entity;
 
+import fr.frankulinn.vehiclemod.entity.parts.EnginePart;
 import fr.frankulinn.vehiclemod.entity.parts.InteractionPartEntity;
 import fr.frankulinn.vehiclemod.entity.parts.PartSlot;
 import fr.frankulinn.vehiclemod.registers.ModEntities;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.world.InteractionHand;
@@ -55,7 +57,7 @@ public abstract class BaseVehicleEntity extends Entity implements GeoEntity {
     public float prevVehiclePitch = 0.0f;
     public float prevVehicleRoll = 0.0f;
 
-    private final java.util.Map<java.util.UUID, String> passengerSeats = new java.util.HashMap<>();
+    private final Map<UUID, String> passengerSeats = new HashMap<>();
 
     // Constructeur obligatoire pour que Minecraft puisse spawner l'entité
     public BaseVehicleEntity(EntityType<?> entityType, Level level) {
@@ -180,15 +182,17 @@ public abstract class BaseVehicleEntity extends Entity implements GeoEntity {
 
             // La consommation d'essence se fait UNIQUEMENT sur le serveur
             if (forwardImpulse != 0 && !this.level().isClientSide()) {
-                float consumptionRate = 0.05f;
-                PartSlot engineSlot = this.getSlot("engine_bay");
-                if (engineSlot != null && engineSlot
-                        .getPart() instanceof fr.frankulinn.vehiclemod.entity.parts.EnginePart enginePart) {
-                    consumptionRate = enginePart.getFuelConsumption();
-                }
+                if (!driver.isCreative()) {
+                    float consumptionRate = 0.05f;
+                    PartSlot engineSlot = this.getSlot("engine_bay");
+                    if (engineSlot != null && engineSlot
+                            .getPart() instanceof EnginePart enginePart) {
+                        consumptionRate = enginePart.getFuelConsumption();
+                    }
 
-                float newFuel = Math.max(0.0f, currentFuel - consumptionRate);
-                this.entityData.set(FUEL_LEVEL, newFuel);
+                    float newFuel = Math.max(0.0f, currentFuel - consumptionRate);
+                    this.entityData.set(FUEL_LEVEL, newFuel);
+                }
             }
         }
 
@@ -330,7 +334,7 @@ public abstract class BaseVehicleEntity extends Entity implements GeoEntity {
             if (!collisionShape.isEmpty()) {
                 // Utiliser la hauteur réelle de la collision shape (dalles = 0.5, neige =
                 // variable, bloc plein = 1.0)
-                return checkPos.getY() + collisionShape.max(net.minecraft.core.Direction.Axis.Y);
+                return checkPos.getY() + collisionShape.max(Direction.Axis.Y);
             }
         }
         // Si pas de sol trouvé, retourner la position actuelle
@@ -373,7 +377,7 @@ public abstract class BaseVehicleEntity extends Entity implements GeoEntity {
 
         CompoundTag syncTag = new CompoundTag();
 
-        for (fr.frankulinn.vehiclemod.entity.parts.PartSlot slot : this.getPartSlots()) {
+        for (PartSlot slot : this.getPartSlots()) {
             if (slot.getPart() != null) {
                 // On garde l'ID de la pièce pour l'affichage visuel
                 syncTag.putString(slot.getId(), slot.getPart().getId());
@@ -418,7 +422,7 @@ public abstract class BaseVehicleEntity extends Entity implements GeoEntity {
         CompoundTag slotsTag = new CompoundTag();
 
         // On sauvegarde chaque emplacement par son nom ("engine_bay", etc.)
-        for (java.util.Map.Entry<String, fr.frankulinn.vehiclemod.entity.parts.PartSlot> entry : this.partSlots
+        for (java.util.Map.Entry<String, PartSlot> entry : this.partSlots
                 .entrySet()) {
             slotsTag.put(entry.getKey(), entry.getValue().save());
         }
@@ -614,7 +618,7 @@ public abstract class BaseVehicleEntity extends Entity implements GeoEntity {
         int availableSeats = 0;
 
         // On compte chaque emplacement qui commence par "seat" et qui est vissé
-        for (fr.frankulinn.vehiclemod.entity.parts.PartSlot slot : this.getPartSlots()) {
+        for (PartSlot slot : this.getPartSlots()) {
             if (slot.getId().startsWith("seat") && slot.isSecured()) {
                 availableSeats++;
             }
@@ -655,7 +659,7 @@ public abstract class BaseVehicleEntity extends Entity implements GeoEntity {
 
     @Override
     public float maxUpStep() {
-        return 1.0f;
+        return 1.2f;
     }
 
 }
